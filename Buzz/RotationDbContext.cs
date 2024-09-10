@@ -30,6 +30,8 @@ namespace Buzz
                 entity.Property(e => e.StartDate).HasColumnName("start_date");
                 entity.Property(e => e.EndDate).HasColumnName("end_date");
                 entity.Property(e => e.MemberId).HasColumnName("member_id");
+                entity.Property(e => e.TaskName).HasColumnName("task_name");
+                entity.Property(e => e.Id).HasColumnName("id");
             });
         }
 
