@@ -1,5 +1,7 @@
 using Buzz;
+using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace Tests
 {
@@ -18,10 +20,8 @@ namespace Tests
                 {
                     Id = 5,
                     TaskId = 5,
-                    PersonName = "zhiqiao",
-                    PersonId = "U66637NN5DX",
-                    StartDate = new DateTime(2024, 9, 9),
-                    EndDate = new DateTime(2024, 9, 16),
+                    StartDate = new DateOnly(2024, 9, 9),
+                    EndDate = new DateOnly(2024, 9, 16),
                     MemberId = 4
                 };
 
@@ -32,7 +32,6 @@ namespace Tests
             using (var context = new RotationDbContext(options))
             {
                 Assert.Equal(1, context.TaskAssignments.Count());
-                Assert.Equal("zhiqiao", context.TaskAssignments.Single().PersonName);
             }
         }
     }

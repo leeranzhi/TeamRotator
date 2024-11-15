@@ -1,5 +1,11 @@
 using Buzz;
+using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using Buzz.Services;
+using Newtonsoft.Json;
+using Xunit;
+using Task = Buzz.Model.Task;
 
 namespace Tests;
 
@@ -13,39 +19,58 @@ public class RotationServiceTests
             .UseInMemoryDatabase(databaseName: "RotationTestDb")
             .Options;
 
-        using (var context = new RotationDbContext(options))
+        var mockContext = new RotationDbContext(options);
+
+        // Seed data
+        mockContext.Members.AddRange(
+            new Member { Id = 1, Host = "zhen", SlackId = "1111" },
+            new Member { Id = 2, Host = "zhiqiao", SlackId = "2222" },
+            new Member { Id = 3, Host = "yahui", SlackId = "3333" },
+            new Member { Id = 4, Host = "guoqing", SlackId = "4444" },
+            new Member { Id = 5, Host = "jinglan", SlackId = "5555" }
+        );
+
+        mockContext.Tasks.AddRange(
+            new Task { Id = 1, TaskName = "Retro" },
+            new Task { Id = 2, TaskName = "English word" },
+            new Task { Id = 3, TaskName = "English word(Day + 1)" },
+            new Task { Id = 4, TaskName = "English word(Day + 2)" },
+            new Task { Id = 5, TaskName = "Standup" },
+            new Task { Id = 6, TaskName = "Tech huddle" }
+        );
+
+        mockContext.TaskAssignments.AddRange(
+            new TaskAssignment { Id = 7, MemberId = 1, TaskId = 1 },
+            new TaskAssignment { Id = 8, MemberId = 2, TaskId = 2 },
+            new TaskAssignment { Id = 9, MemberId = 3, TaskId = 3 },
+            new TaskAssignment { Id = 10, MemberId = 4, TaskId = 4 },
+            new TaskAssignment { Id = 11, MemberId = 5, TaskId = 5 },
+            new TaskAssignment { Id = 12, MemberId = 5, TaskId = 6 }
+        );
+
+        mockContext.SaveChanges();
+
+        var mockFactory = new Mock<IDbContextFactory<RotationDbContext>>();
+        mockFactory.Setup(f => f.CreateDbContext()).Returns(mockContext);
+
+        var mockAssignmentUpdateService = new Mock<IAssignmentUpdateService>();
+
+        var service = new RotationService(mockFactory.Object, mockAssignmentUpdateService.Object);
+
+        // Act
+        var result = service.GetRotationList();
+
+        // Assert
+        var expected = JsonConvert.SerializeObject(new List<object>
         {
-            // Seed data
-            context.TaskAssignments.AddRange(
-                new TaskAssignment { Id = 1, TaskName = "Retro", PersonName = "jinglan" },
-                new TaskAssignment { Id = 2, TaskName = "English word", PersonName = "zhen" },
-                new TaskAssignment { Id = 3, TaskName = "English word(Day + 1)", PersonName = "yonglong" },
-                new TaskAssignment { Id = 4, TaskName = "English word(Day + 2)", PersonName = "jinglan" },
-                new TaskAssignment { Id = 5, TaskName = "Standup", PersonName = "zhen" },
-                new TaskAssignment { Id = 6, TaskName = "Tech huddle", PersonName = "zhen" }
-            );
-            context.SaveChanges();
-        }
+            new { Id = 7, TaskId = 1, TaskName = "Retro", MemberId = 1, Host = "zhen", SlackId = "1111" },
+            new { Id = 8, TaskId = 2, TaskName = "English word", MemberId = 2, Host = "zhiqiao", SlackId = "2222" },
+            new { Id = 9, TaskId = 3, TaskName = "English word(Day + 1)", MemberId = 3, Host = "yahui", SlackId = "3333" },
+            new { Id = 10, TaskId = 4, TaskName = "English word(Day + 2)", MemberId = 4,Host = "guoqing", SlackId = "4444" },
+            new { Id = 11, TaskId = 5, TaskName = "Standup", MemberId = 5, Host = "jinglan", SlackId = "5555" },
+            new { Id = 12, TaskId = 6, TaskName = "Tech huddle", MemberId = 5, Host = "jinglan", SlackId = "5555" }
+        }, Formatting.Indented);
 
-        using (var context = new RotationDbContext(options))
-        {
-            var service = new RotationService(context);
-
-            // Act
-            var result = service.GetRotationList();
-
-            // Assert
-            var expected = new List<string>
-            {
-                "Retro: jinglan",
-                "English word: zhen",
-                "English word(Day + 1): yonglong",
-                "English word(Day + 2): jinglan",
-                "Standup: zhen",
-                "Tech huddle: zhen"
-            };
-
-            Assert.Equal(expected, result);
-        }
+        Assert.Equal(expected, result);
     }
 }

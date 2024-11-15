@@ -20,7 +20,7 @@ Global
 		{9EE3B008-A6C7-483F-AD19-B27C5196F1C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EE3B008-A6C7-483F-AD19-B27C5196F1C1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{9EE3B008-A6C7-483F-AD19-B27C5196F1C1} = {F6AD4326-D8FB-4147-BD11-137DEEA03EE5}
-	EndGlobalSection
+    GlobalSection(NestedProjects) = preSolution
+        {9EE3B008-A6C7-483F-AD19-B27C5196F1C1} = {278B1B69-F6B5-48DF-89BD-943DE81D8DD3}
+    EndGlobalSection
 EndGlobal

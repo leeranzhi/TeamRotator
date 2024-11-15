@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+  title: Buzz API
+  version: 1.0.0
+  description: API for getting or managing task assignments.
+
+paths:
+  /assignments:
+    get:
+      tags:
+        - assignments
+      summary: Retrieve the current rotation list
+      description: Return a list of task assignments
+      operationId: getRotationList
+      responses:
+        '200':
+          description: Successful retrieval of rotation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskAssignment'
+        '500':
+          description: Internal server error
+
+  /assignments/{id}:
+    put:
+      tags:
+        - assignments
+      summary: Update a task assignment by ID
+      description: Modify an existing task assignment with provided ifo.
+      operationId: updateRotationList
+      parameters:
+        - name: id
+          in: path
+          description: ID of the task assignment need to be updated
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        description: Assignment info needed
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModifyAssignmentDto'
+      responses:
+        '200':
+          description: Successful update the task assignment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskAssignment'
+        '400':
+          description: Invalid ID or input data
+        '404':
+          description: Assignment not found
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    TaskAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifier for the task assignment
+        taskName:
+          type: string
+          description: Name of the task
+        memberId:
+          type: integer
+          description: ID of the member
+        periodType:
+          type: string
+          description: Type of period for the assignment
+    ModifyAssignmentDto:
+      type: object
+      properties:
+        host:
+          type: string
+          description: New host to be assigned
