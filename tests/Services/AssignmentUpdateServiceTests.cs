@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Xunit;
 using Task = Buzz.Model.Task;
 
-namespace Tests;
+namespace Tests.Services;
 
 public class AssignmentUpdateServiceTests
 {

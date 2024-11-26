@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using Xunit;
 using Task = Buzz.Model.Task;
 
-namespace Tests;
+namespace Tests.Services;
 
 public class RotationServiceTests
 {
