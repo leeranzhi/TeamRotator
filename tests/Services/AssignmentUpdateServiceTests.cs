@@ -1,5 +1,6 @@
 using Buzz;
 using Buzz.Model;
+using Buzz.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 using Task = Buzz.Model.Task;

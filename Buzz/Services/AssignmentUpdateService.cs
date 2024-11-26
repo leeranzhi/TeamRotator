@@ -1,9 +1,8 @@
-using Buzz;
 using Buzz.Dto;
 using Buzz.Model;
-using Buzz.Services;
 using Microsoft.EntityFrameworkCore;
 
+namespace Buzz.Services;
 public class AssignmentUpdateService : IAssignmentUpdateService
 {
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
@@ -14,7 +13,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
     {
         _contextFactory = contextFactory;
         _slackService = slackService;
-        _timeProvider = timeProvider ?? new DefaultTimeProvider(); // 确保 _timeProvider 不为空
+        _timeProvider = timeProvider ?? new DefaultTimeProvider();
     }
 
     public void UpdateTaskAssignment(TaskAssignment assignment)
