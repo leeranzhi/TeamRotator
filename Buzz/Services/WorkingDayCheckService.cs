@@ -7,11 +7,17 @@ namespace Buzz.Services;
 public class WorkingDayCheckService
 {
     private static readonly HttpClient HttpClient = new HttpClient();
-    private string _url = "https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/2024.json";
+    private readonly string _baseUrl;
+
+    public WorkingDayCheckService(IConfiguration configuration)
+    {
+        _baseUrl = configuration["HolidayApiSettings:Url"];
+    }
 
     public async Task<bool> IsWorkingDay(DateTime currentDate)
     {
-        var holidays = await GetHolidays(_url);
+        var year = currentDate.Year;
+        var holidays = await GetHolidays(year);
         var holiday = holidays.Find(h => h.Date == currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         
         if (holiday != null) 
@@ -22,8 +28,9 @@ public class WorkingDayCheckService
         return !(currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday);
     }
 
-    private async Task<List<HolidayDto>> GetHolidays(string url)
+    private async Task<List<HolidayDto>> GetHolidays(int year)
     {
+        var url = $"{_baseUrl}/{year}.json";
         try
         {
             HttpResponseMessage response = await HttpClient.GetAsync(url);
