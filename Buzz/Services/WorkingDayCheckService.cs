@@ -6,12 +6,13 @@ namespace Buzz.Services;
 
 public class WorkingDayCheckService
 {
-    private static readonly HttpClient HttpClient = new HttpClient();
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly string _baseUrl;
 
-    public WorkingDayCheckService(IConfiguration configuration)
+    public WorkingDayCheckService(IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
         _baseUrl = configuration["HolidayApiSettings:Url"];
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<bool> IsWorkingDay(DateTime currentDate)
@@ -33,7 +34,8 @@ public class WorkingDayCheckService
         var url = $"{_baseUrl}/{year}.json";
         try
         {
-            HttpResponseMessage response = await HttpClient.GetAsync(url);
+            var client = _httpClientFactory.CreateClient();
+            HttpResponseMessage response = await client.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
             string jsonContent = await response.Content.ReadAsStringAsync();
