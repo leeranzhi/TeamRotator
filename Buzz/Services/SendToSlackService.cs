@@ -1,27 +1,32 @@
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace Buzz.Services
 {
     public class SendToSlackService
     {
-        private static readonly HttpClient Client = new HttpClient();
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IDbContextFactory<RotationDbContext> _contextFactory;
+        private readonly string _slackWebhookUrl;
+        private readonly string _personalSlackUrl;
 
-        public SendToSlackService(IDbContextFactory<RotationDbContext> contextFactory)
+        public SendToSlackService(
+            IDbContextFactory<RotationDbContext> contextFactory,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration)
         {
             _contextFactory = contextFactory;
+            _httpClientFactory = httpClientFactory;
+            _slackWebhookUrl = configuration["Slack:WebhookUrl"];
+            _personalSlackUrl = configuration["Slack:PersonalWebhookUrl"];
         }
 
         public async Task SendSlackMessage()
         {
-            const string slackWebhookUrl = "";
-
             try
             {
                 using var context = _contextFactory.CreateDbContext();
-                
                 var taskAssignments = await context.TaskAssignments
                     .Join(context.Members,
                         taskAssignment => taskAssignment.MemberId,
@@ -47,10 +52,11 @@ namespace Buzz.Services
                 var payload = new { text = messageBuilder.ToString() };
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-                var response = await Client.PostAsync(slackWebhookUrl, content);
+                var client = _httpClientFactory.CreateClient();
+                var response = await client.PostAsync(_slackWebhookUrl, content);
 
-                Console.WriteLine(response.IsSuccessStatusCode 
-                    ? "Message sent successfully to Slack!" 
+                Console.WriteLine(response.IsSuccessStatusCode
+                    ? "Message sent successfully to Slack!"
                     : $"Failed to send message to Slack. Status code: {response.StatusCode}");
             }
             catch (Exception ex)
@@ -59,22 +65,23 @@ namespace Buzz.Services
             }
         }
 
-        public async Task SendFailedMessageToSlack(String failedMessage)
+        public async Task SendFailedMessageToSlack(string failedMessage)
         {
-            const string slackWebhookUrl = "";
-
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(failedMessage), Encoding.UTF8, "application/json");
-                var response = await Client.PostAsync(slackWebhookUrl, content);
+                var payload = new { text = failedMessage };
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+                var client = _httpClientFactory.CreateClient();
+                var response = await client.PostAsync(_personalSlackUrl, content);
 
                 Console.WriteLine(response.IsSuccessStatusCode
-                    ? "Failure message sent to Slack!"
-                    : $"Failed to send failure message to Slack. Status code: {response.StatusCode}");
+                    ? "Failure message sent to personal Slack URL!"
+                    : $"Failed to send failure message to personal Slack URL. Status code: {response.StatusCode}");
             }
             catch (Exception e)
             {
-                Console.WriteLine($"An error occurred while sending failure message to Slack: {e.Message}");
+                Console.WriteLine($"An error occurred while sending failure message to personal Slack URL: {e.Message}");
             }
         }
     }
