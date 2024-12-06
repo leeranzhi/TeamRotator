@@ -33,8 +33,8 @@ namespace Tests.Services
         public async Task IsWorkingDay_Weekend_ReturnsFalse()
         {
             // Arrange
-            var saturday = new DateTime(2024, 3, 23);  // 周六
-            SetupMockResponse(saturday.Year, "[]");  // 空的假期列表
+            var saturday = new DateTime(2024, 3, 23);
+            SetupMockResponse(saturday.Year, "[]");
 
             // Act
             var result = await _service.IsWorkingDay(saturday);
@@ -47,9 +47,9 @@ namespace Tests.Services
         public async Task IsWorkingDay_Weekday_ReturnsTrue()
         {
             // Arrange
-            var monday = new DateTime(2024, 3, 25);  // 周一
-            SetupMockResponse(monday.Year, "[]");  // 空的假期列表
-
+            var monday = new DateTime(2024, 3, 25);
+            SetupMockResponse(monday.Year, "[]");
+            
             // Act
             var result = await _service.IsWorkingDay(monday);
 
@@ -61,7 +61,7 @@ namespace Tests.Services
         public async Task IsWorkingDay_Holiday_ReturnsFalse()
         {
             // Arrange
-            var holidayDate = new DateTime(2024, 1, 1);  // 元旦
+            var holidayDate = new DateTime(2024, 1, 1);
             var holidayJson = @"{
                 ""days"": [
                     {
@@ -84,7 +84,7 @@ namespace Tests.Services
         public async Task IsWorkingDay_WorkingHoliday_ReturnsTrue()
         {
             // Arrange
-            var workingHolidayDate = new DateTime(2024, 2, 18);  // 假期调休补班
+            var workingHolidayDate = new DateTime(2024, 2, 18);
             var holidayJson = @"{
                 ""days"": [
                     {
