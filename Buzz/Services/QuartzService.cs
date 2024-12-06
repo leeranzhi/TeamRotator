@@ -1,18 +1,18 @@
-using Quartz;
 using Buzz.Jobs;
 using Buzz.Model;
+using Quartz;
 using Task = System.Threading.Tasks.Task;
 
 namespace Buzz.Services;
 
 public class QuartzService
 {
-    private readonly IScheduler _scheduler;
+    private readonly ISchedulerFactory _schedulerFactory;
     private readonly IWorkingDayCheckService _workingDayCheckService;
 
-    public QuartzService(IScheduler scheduler, IWorkingDayCheckService workingDayCheckService)
+    public QuartzService(ISchedulerFactory schedulerFactory, IWorkingDayCheckService workingDayCheckService)
     {
-        _scheduler = scheduler;
+        _schedulerFactory = schedulerFactory;
         _workingDayCheckService = workingDayCheckService;
     }
 
@@ -23,6 +23,8 @@ public class QuartzService
 
         if (isWorkingDay)
         {
+            var scheduler = await _schedulerFactory.GetScheduler();
+
             var assignmentJobKey = new JobKey("AssignmentUpdateJob");
             var assignmentJobDetail = JobBuilder.Create<AssignmentUpdateJob>()
                 .WithIdentity(assignmentJobKey)
@@ -33,7 +35,7 @@ public class QuartzService
                 .WithCronSchedule("0 0 0 * * ?")
                 .Build();
 
-            await _scheduler.ScheduleJob(assignmentJobDetail, assignmentJobTrigger);
+            await scheduler.ScheduleJob(assignmentJobDetail, assignmentJobTrigger);
 
             var slackJobKey = new JobKey("SendToSlackJob");
             var slackJobDetail = JobBuilder.Create<SendToSlackJob>()
@@ -45,7 +47,7 @@ public class QuartzService
                 .WithCronSchedule("0 0 8 * * ?")
                 .Build();
 
-            await _scheduler.ScheduleJob(slackJobDetail, slackJobTrigger);
+            await scheduler.ScheduleJob(slackJobDetail, slackJobTrigger);
         }
     }
 }

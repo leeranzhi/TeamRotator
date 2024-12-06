@@ -1,10 +1,11 @@
 using System.Globalization;
 using Buzz.Dto;
+using Buzz.Model;
 using Newtonsoft.Json;
 
 namespace Buzz.Services;
 
-public class WorkingDayCheckService
+public class WorkingDayCheckService : IWorkingDayCheckService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly string _baseUrl;
@@ -51,3 +52,4 @@ public class WorkingDayCheckService
         }
     }
 }
+    

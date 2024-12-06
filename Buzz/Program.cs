@@ -15,13 +15,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddDbContextFactory<RotationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddTransient<RotationService>();
 builder.Services.AddTransient<AssignmentUpdateService>();
 builder.Services.AddTransient<IAssignmentUpdateService, AssignmentUpdateService>();
+builder.Services.AddTransient<IWorkingDayCheckService, WorkingDayCheckService>();
+builder.Services.AddTransient<RotationService>();
 builder.Services.AddTransient<SendToSlackService>();
-builder.Services.AddTransient<WorkingDayCheckService>();
 builder.Services.AddTransient<QuartzService>();
 
+// Add Quartz services
 builder.Services.AddQuartz();
 builder.Services.AddQuartzHostedService();
 
@@ -36,6 +37,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Configure and schedule jobs with QuartzService
 using (var scope = app.Services.CreateScope())
 {
     var quartzService = scope.ServiceProvider.GetRequiredService<QuartzService>();
