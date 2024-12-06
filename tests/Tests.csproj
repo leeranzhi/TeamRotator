@@ -27,4 +27,8 @@
     <ProjectReference Include="..\Buzz\Buzz.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Utilities\" />
+  </ItemGroup>
+
 </Project>
