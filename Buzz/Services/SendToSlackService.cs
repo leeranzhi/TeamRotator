@@ -63,7 +63,6 @@ namespace Buzz.Services
 
                 messageBuilder.AppendLine($"English word(Day + 1): <@{nextOneMember.SlackId}>");
                 messageBuilder.AppendLine($"English word(Day + 2): <@{nextTwoMember.SlackId}>");
-
             }
         }
         
