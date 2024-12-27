@@ -19,10 +19,10 @@ namespace Buzz.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<TaskAssignment>> GetRotationList()
+        public ActionResult<List<object>> GetRotationList()
         {
             var rotationList = _rotationService.GetRotationList();
-            return Ok(rotationList); 
+            return Ok(rotationList);
         }
 
         [HttpPut("{id}")]

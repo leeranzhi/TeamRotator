@@ -1,6 +1,5 @@
 using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 
 namespace Buzz.Services;
 
@@ -14,11 +13,11 @@ public class RotationService
         _contextFactory = contextFactory;
         _assignmentUpdateService = assignmentUpdateService;
     }
-
-    public string GetRotationList()
+    
+    public List<object> GetRotationList()
     {
         using var context = _contextFactory.CreateDbContext();
-    
+
         var rotationList = context.TaskAssignments
             .Join(context.Members,
                 taskAssignment => taskAssignment.MemberId,
@@ -38,10 +37,9 @@ public class RotationService
                 })
             .OrderBy(x => x.Id)
             .ToList();
-        var jsonResult = JsonConvert.SerializeObject(rotationList, Newtonsoft.Json.Formatting.Indented);
-        return jsonResult;
-    }
 
+        return rotationList.Cast<object>().ToList();
+    }
 
     private bool ShouldUpdateAssignment(TaskAssignment assignment)
     {
@@ -52,12 +50,13 @@ public class RotationService
     public void UpdateTaskAssignmentList()
     {
         using var context = _contextFactory.CreateDbContext();
+
         foreach (var taskAssignment in context.TaskAssignments)
         {
             if (ShouldUpdateAssignment(taskAssignment))
             {
                 _assignmentUpdateService.UpdateTaskAssignment(taskAssignment);
-            }    
+            }
         }
     }
 }
