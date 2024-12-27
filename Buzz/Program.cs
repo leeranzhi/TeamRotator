@@ -15,10 +15,9 @@ builder.Services.AddHttpClient();
 builder.Services.AddDbContextFactory<RotationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddTransient<AssignmentUpdateService>();
 builder.Services.AddTransient<IAssignmentUpdateService, AssignmentUpdateService>();
+builder.Services.AddTransient<IRotationService, RotationService>();
 builder.Services.AddTransient<IWorkingDayCheckService, WorkingDayCheckService>();
-builder.Services.AddTransient<RotationService>();
 builder.Services.AddTransient<SendToSlackService>();
 builder.Services.AddTransient<QuartzService>();
 

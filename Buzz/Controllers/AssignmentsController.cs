@@ -9,10 +9,10 @@ namespace Buzz.Controllers
     [Route("assignments")]
     public class AssignmentsController : ControllerBase
     {
-        private readonly RotationService _rotationService;
-        private readonly AssignmentUpdateService _assignmentUpdateService;
+        private readonly IRotationService _rotationService;
+        private readonly IAssignmentUpdateService _assignmentUpdateService;
 
-        public AssignmentsController(RotationService rotationService,AssignmentUpdateService assignmentUpdateService)
+        public AssignmentsController(IRotationService rotationService, IAssignmentUpdateService assignmentUpdateService)
         {
             _rotationService = rotationService;
             _assignmentUpdateService = assignmentUpdateService;
@@ -22,7 +22,7 @@ namespace Buzz.Controllers
         public ActionResult<List<object>> GetRotationList()
         {
             var rotationList = _rotationService.GetRotationList();
-            return Ok(rotationList);
+            return Ok(rotationList); 
         }
 
         [HttpPut("{id}")]

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Buzz.Services;
 
-public class RotationService
+public class RotationService : IRotationService
 {
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
     private readonly IAssignmentUpdateService _assignmentUpdateService;
