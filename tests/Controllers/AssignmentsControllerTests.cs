@@ -24,10 +24,26 @@ namespace Tests.Controllers
         public void GetRotationList_ShouldReturnOkWithRotationList()
         {
             // Arrange
-            var rotationList = new List<object>
+            var rotationList = new List<TaskAssignmentDto>
             {
-                new { Id = 1, TaskId = 1, StartDate = DateOnly.Parse("2024-01-01"), EndDate = DateOnly.Parse("2024-01-07"), MemberId = 1 },
-                new { Id = 2, TaskId = 2, StartDate = DateOnly.Parse("2024-01-08"), EndDate = DateOnly.Parse("2024-01-14"), MemberId = 2 }
+                new TaskAssignmentDto 
+                { 
+                    Id = 1, 
+                    TaskId = 1, 
+                    TaskName = "Task1", 
+                    MemberId = 1,
+                    Host = "Host1",
+                    SlackId = "SlackId1"
+                },
+                new TaskAssignmentDto 
+                { 
+                    Id = 2, 
+                    TaskId = 2, 
+                    TaskName = "Task2", 
+                    MemberId = 2,
+                    Host = "Host2",
+                    SlackId = "SlackId2"
+                }
             };
             _mockRotationService.Setup(service => service.GetRotationList()).Returns(rotationList);
 
@@ -36,9 +52,10 @@ namespace Tests.Controllers
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedList = Assert.IsType<List<object>>(okResult.Value);
+            var returnedList = Assert.IsType<List<TaskAssignmentDto>>(okResult.Value); // Ensure the type matches
             Assert.Equal(rotationList.Count, returnedList.Count);
         }
+
 
         [Fact]
         public void UpdateRotationList_ShouldReturnOkWithUpdatedAssignment()

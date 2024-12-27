@@ -1,3 +1,4 @@
+using Buzz.Dto;
 using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,7 @@ public class RotationService : IRotationService
         _assignmentUpdateService = assignmentUpdateService;
     }
     
-    public List<object> GetRotationList()
+    public List<TaskAssignmentDto> GetRotationList()
     {
         using var context = _contextFactory.CreateDbContext();
 
@@ -36,9 +37,18 @@ public class RotationService : IRotationService
                     SlackId = combined.member.SlackId
                 })
             .OrderBy(x => x.Id)
+            .Select(x => new TaskAssignmentDto
+            {
+                Id = x.Id,
+                TaskId = x.TaskId,
+                TaskName = x.TaskName,
+                MemberId = x.MemberId,
+                Host = x.Host,
+                SlackId = x.SlackId
+            })
             .ToList();
 
-        return rotationList.Cast<object>().ToList();
+        return rotationList;
     }
 
     private bool ShouldUpdateAssignment(TaskAssignment assignment)

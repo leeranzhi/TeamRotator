@@ -1,4 +1,5 @@
 using Buzz;
+using Buzz.Dto;
 using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -61,16 +62,30 @@ public class RotationServiceTests
         var result = service.GetRotationList();
 
         // Assert
-        var expected = JsonConvert.SerializeObject(new List<object>
+        var expected = new List<TaskAssignmentDto>
         {
-            new { Id = 7, TaskId = 1, TaskName = "Retro", MemberId = 1, Host = "zhen", SlackId = "1111" },
-            new { Id = 8, TaskId = 2, TaskName = "English word", MemberId = 2, Host = "zhiqiao", SlackId = "2222" },
-            new { Id = 9, TaskId = 3, TaskName = "English word(Day + 1)", MemberId = 3, Host = "yahui", SlackId = "3333" },
-            new { Id = 10, TaskId = 4, TaskName = "English word(Day + 2)", MemberId = 4,Host = "guoqing", SlackId = "4444" },
-            new { Id = 11, TaskId = 5, TaskName = "Standup", MemberId = 5, Host = "jinglan", SlackId = "5555" },
-            new { Id = 12, TaskId = 6, TaskName = "Tech huddle", MemberId = 5, Host = "jinglan", SlackId = "5555" }
-        }, Formatting.Indented);
+            new TaskAssignmentDto { Id = 7, TaskId = 1, TaskName = "Retro", MemberId = 1, Host = "zhen", SlackId = "1111" },
+            new TaskAssignmentDto { Id = 8, TaskId = 2, TaskName = "English word", MemberId = 2, Host = "zhiqiao", SlackId = "2222" },
+            new TaskAssignmentDto { Id = 9, TaskId = 3, TaskName = "English word(Day + 1)", MemberId = 3, Host = "yahui", SlackId = "3333" },
+            new TaskAssignmentDto { Id = 10, TaskId = 4, TaskName = "English word(Day + 2)", MemberId = 4, Host = "guoqing", SlackId = "4444" },
+            new TaskAssignmentDto { Id = 11, TaskId = 5, TaskName = "Standup", MemberId = 5, Host = "jinglan", SlackId = "5555" },
+            new TaskAssignmentDto { Id = 12, TaskId = 6, TaskName = "Tech huddle", MemberId = 5, Host = "jinglan", SlackId = "5555" }
+        };
 
-        Assert.Equal(expected, result);
+        // Compare each element in the list
+        Assert.Equal(expected.Count, result.Count);
+
+        for (int i = 0; i < expected.Count; i++)
+        {
+            var expectedItem = expected[i];
+            var resultItem = result[i];
+
+            Assert.Equal(expectedItem.Id, resultItem.Id);
+            Assert.Equal(expectedItem.TaskId, resultItem.TaskId);
+            Assert.Equal(expectedItem.TaskName, resultItem.TaskName);
+            Assert.Equal(expectedItem.MemberId, resultItem.MemberId);
+            Assert.Equal(expectedItem.Host, resultItem.Host);
+            Assert.Equal(expectedItem.SlackId, resultItem.SlackId);
+        }
     }
 }
