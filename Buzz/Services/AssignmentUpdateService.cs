@@ -3,13 +3,15 @@ using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
 
 namespace Buzz.Services;
+
 public class AssignmentUpdateService : IAssignmentUpdateService
 {
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
     private readonly SendToSlackService _slackService;
     private readonly ITimeProvider _timeProvider;
 
-    public AssignmentUpdateService(IDbContextFactory<RotationDbContext> contextFactory, SendToSlackService slackService, ITimeProvider timeProvider = null)
+    public AssignmentUpdateService(IDbContextFactory<RotationDbContext> contextFactory, SendToSlackService slackService,
+        ITimeProvider timeProvider = null)
     {
         _contextFactory = contextFactory;
         _slackService = slackService;
@@ -115,7 +117,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
     public TaskAssignment ModifyTaskAssignment(int id, ModifyAssignmentDto modifyAssignmentDto)
     {
         using var context = _contextFactory.CreateDbContext();
-        
+
         var modifiedAssignment = context.TaskAssignments
             .FirstOrDefault(a => a.Id == id);
 
@@ -123,7 +125,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         {
             throw new InvalidOperationException("Assignment not found.");
         }
-        
+
         var member = context.Members
             .FirstOrDefault(m => m.Host == modifyAssignmentDto.Host);
 

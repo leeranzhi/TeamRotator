@@ -9,12 +9,13 @@ public class RotationService : IRotationService
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
     private readonly IAssignmentUpdateService _assignmentUpdateService;
 
-    public RotationService(IDbContextFactory<RotationDbContext> contextFactory, IAssignmentUpdateService assignmentUpdateService)
+    public RotationService(IDbContextFactory<RotationDbContext> contextFactory,
+        IAssignmentUpdateService assignmentUpdateService)
     {
         _contextFactory = contextFactory;
         _assignmentUpdateService = assignmentUpdateService;
     }
-    
+
     public List<TaskAssignmentDto> GetRotationList()
     {
         using var context = _contextFactory.CreateDbContext();

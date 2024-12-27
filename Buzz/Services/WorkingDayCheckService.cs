@@ -21,8 +21,8 @@ public class WorkingDayCheckService : IWorkingDayCheckService
         var year = currentDate.Year;
         var holidays = await GetHolidays(year);
         var holiday = holidays.Find(h => h.Date == currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        
-        if (holiday != null) 
+
+        if (holiday != null)
         {
             return !holiday.IsOffDay;
         }
@@ -52,4 +52,3 @@ public class WorkingDayCheckService : IWorkingDayCheckService
         }
     }
 }
-    

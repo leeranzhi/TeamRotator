@@ -54,6 +54,5 @@ public class RotationDbContext : DbContext
             entity.Property(e => e.SlackId).HasColumnName("slack_id");
         });
     }
-
 }
     
