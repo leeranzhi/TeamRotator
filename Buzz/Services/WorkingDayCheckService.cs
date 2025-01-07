@@ -16,7 +16,7 @@ public class WorkingDayCheckService : IWorkingDayCheckService
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<bool> IsWorkingDay(DateTime currentDate)
+    public async Task<bool> IsWorkingDayCheck(DateTime currentDate)
     {
         var year = currentDate.Year;
         var holidays = await GetHolidays(year);

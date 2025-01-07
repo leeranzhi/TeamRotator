@@ -19,7 +19,7 @@ public class QuartzService
     public async Task ConfigureJobsAsync()
     {
         DateTime currentDate = DateTime.Today;
-        bool isWorkingDay = await _workingDayCheckService.IsWorkingDay(currentDate);
+        bool isWorkingDay = await _workingDayCheckService.IsWorkingDayCheck(currentDate);
 
         if (isWorkingDay)
         {
