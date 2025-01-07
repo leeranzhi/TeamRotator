@@ -5,4 +5,6 @@ namespace Buzz.Model;
 public interface IRotationService
 {
     List<TaskAssignmentDto> GetRotationList();
+    
+    void UpdateTaskAssignmentList();
 }

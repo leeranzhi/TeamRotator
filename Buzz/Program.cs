@@ -22,7 +22,11 @@ builder.Services.AddTransient<SendToSlackService>();
 builder.Services.AddTransient<QuartzService>();
 
 // Add Quartz services
-builder.Services.AddQuartz();
+builder.Services.AddQuartz(q =>
+{
+    q.UseMicrosoftDependencyInjectionJobFactory();
+});
+
 builder.Services.AddQuartzHostedService();
 
 builder.Services.AddControllers()
