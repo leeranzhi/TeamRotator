@@ -37,7 +37,7 @@ namespace Tests.Services
             SetupMockResponse(saturday.Year, "[]");
 
             // Act
-            var result = await _service.IsWorkingDay(saturday);
+            var result = await _service.IsWorkingDayCheck(saturday);
 
             // Assert
             Assert.False(result);
@@ -51,7 +51,7 @@ namespace Tests.Services
             SetupMockResponse(monday.Year, "[]");
             
             // Act
-            var result = await _service.IsWorkingDay(monday);
+            var result = await _service.IsWorkingDayCheck(monday);
 
             // Assert
             Assert.True(result);
@@ -74,7 +74,7 @@ namespace Tests.Services
             SetupMockResponse(holidayDate.Year, holidayJson);
 
             // Act
-            var result = await _service.IsWorkingDay(holidayDate);
+            var result = await _service.IsWorkingDayCheck(holidayDate);
 
             // Assert
             Assert.False(result);
@@ -97,7 +97,7 @@ namespace Tests.Services
             SetupMockResponse(workingHolidayDate.Year, holidayJson);
 
             // Act
-            var result = await _service.IsWorkingDay(workingHolidayDate);
+            var result = await _service.IsWorkingDayCheck(workingHolidayDate);
 
             // Assert
             Assert.True(result);

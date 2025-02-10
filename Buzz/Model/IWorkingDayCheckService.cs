@@ -2,5 +2,5 @@ namespace Buzz.Model;
 
 public interface IWorkingDayCheckService
 {
-    Task<bool> IsWorkingDay(DateTime date);
+    Task<bool> IsWorkingDayCheck(DateTime date);
 }

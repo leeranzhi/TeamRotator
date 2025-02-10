@@ -20,7 +20,7 @@ public class QuartzServiceTests
         mockSchedulerFactory.Setup(s => s.GetScheduler(It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockScheduler.Object);
 
-        mockWorkingDayCheckService.Setup(w => w.IsWorkingDay(It.IsAny<DateTime>())).ReturnsAsync(true);
+        mockWorkingDayCheckService.Setup(w => w.IsWorkingDayCheck(It.IsAny<DateTime>())).ReturnsAsync(true);
 
         var quartzService = new QuartzService(mockSchedulerFactory.Object, mockWorkingDayCheckService.Object);
 
@@ -29,7 +29,7 @@ public class QuartzServiceTests
 
         // Assert
         mockSchedulerFactory.Verify(f => f.GetScheduler(It.IsAny<CancellationToken>()), Times.Once);
-        mockWorkingDayCheckService.Verify(w => w.IsWorkingDay(It.IsAny<DateTime>()), Times.Once);
+        mockWorkingDayCheckService.Verify(w => w.IsWorkingDayCheck(It.IsAny<DateTime>()), Times.Once);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class QuartzServiceTests
         var mockSchedulerFactory = new Mock<ISchedulerFactory>();
         var mockWorkingDayCheckService = new Mock<IWorkingDayCheckService>();
 
-        mockWorkingDayCheckService.Setup(w => w.IsWorkingDay(It.IsAny<DateTime>())).ReturnsAsync(false);
+        mockWorkingDayCheckService.Setup(w => w.IsWorkingDayCheck(It.IsAny<DateTime>())).ReturnsAsync(false);
 
         var quartzService = new QuartzService(mockSchedulerFactory.Object, mockWorkingDayCheckService.Object);
 
@@ -47,7 +47,7 @@ public class QuartzServiceTests
         await quartzService.ConfigureJobsAsync();
 
         // Assert
-        mockWorkingDayCheckService.Verify(w => w.IsWorkingDay(It.IsAny<DateTime>()), Times.Once);
+        mockWorkingDayCheckService.Verify(w => w.IsWorkingDayCheck(It.IsAny<DateTime>()), Times.Once);
 
         mockSchedulerFactory.Verify(f => f.GetScheduler(It.IsAny<CancellationToken>()), Times.Never);
     }
