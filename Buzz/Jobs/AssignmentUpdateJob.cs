@@ -1,19 +1,21 @@
 using Quartz;
-using Buzz.Services;
+using Buzz.Model;
+using Task = System.Threading.Tasks.Task;
 
 namespace Buzz.Jobs;
+
 public class AssignmentUpdateJob : IJob
 {
-    private readonly RotationService _assignmentUpdate;
+    private readonly IRotationService _rotationService;
 
-    public AssignmentUpdateJob(RotationService assignmentUpdate)
+    public AssignmentUpdateJob(IRotationService rotationService)
     {
-        _assignmentUpdate = assignmentUpdate;
+        _rotationService = rotationService;
     }
 
-    public System.Threading.Tasks.Task Execute(IJobExecutionContext context)
+    public Task Execute(IJobExecutionContext context)
     {
-        _assignmentUpdate.UpdateTaskAssignmentList();
-        return System.Threading.Tasks.Task.CompletedTask;
+        _rotationService.UpdateTaskAssignmentList();
+        return Task.CompletedTask;
     }
 }
