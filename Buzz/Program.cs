@@ -7,10 +7,18 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.WithCorrelationId()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
 // Add services to the container.
 
 builder.Services.AddControllers();
-
 builder.Services.AddHttpClient();
 
 builder.Services.AddDbContextFactory<RotationDbContext>(options =>
@@ -41,6 +49,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseSerilogRequestLogging();
+
 // Configure and schedule jobs with QuartzService
 using (var scope = app.Services.CreateScope())
 {
@@ -54,22 +64,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
-// 配置 Serilog
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
-    .CreateLogger();
-
-builder.Host.UseSerilog();  // 替换默认日志
-
-Log.Logger = new LoggerConfiguration()
-    .Enrich.WithCorrelationId()  // 添加 CorrelationId
-    .WriteTo.Console()
-    .CreateLogger();
-
-
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();
