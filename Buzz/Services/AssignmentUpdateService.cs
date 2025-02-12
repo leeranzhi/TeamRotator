@@ -1,6 +1,7 @@
 using Buzz.Dto;
 using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
+using Serilog.Context;
 
 namespace Buzz.Services;
 
@@ -9,17 +10,22 @@ public class AssignmentUpdateService : IAssignmentUpdateService
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
     private readonly SendToSlackService _slackService;
     private readonly ITimeProvider _timeProvider;
+    private readonly ILogger<AssignmentUpdateService> _logger;
 
     public AssignmentUpdateService(IDbContextFactory<RotationDbContext> contextFactory, SendToSlackService slackService,
-        ITimeProvider timeProvider = null)
+        ILogger<AssignmentUpdateService> logger, ITimeProvider timeProvider = null)
     {
         _contextFactory = contextFactory;
         _slackService = slackService;
         _timeProvider = timeProvider ?? new DefaultTimeProvider();
+        _logger = logger;
     }
 
     public void UpdateTaskAssignment(TaskAssignment assignment)
     {
+        using var correlationIdScope = LogContext.PushProperty("CorrelationId", Guid.NewGuid());
+        _logger.LogInformation("Updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
+        
         try
         {
             using var context = _contextFactory.CreateDbContext();
@@ -32,6 +38,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
 
             if (task == null)
             {
+                _logger.LogWarning("Task not found for TaskId {TaskId}", assignment.TaskId);
                 throw new InvalidOperationException("Task not found.");
             }
 
@@ -40,6 +47,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
 
             if (currentAssignment == null)
             {
+                _logger.LogWarning("Assignment not found for AssignmentId {AssignmentId}", assignment.Id);
                 throw new InvalidOperationException("Assignment not found.");
             }
 
@@ -52,9 +60,8 @@ public class AssignmentUpdateService : IAssignmentUpdateService
 
                 case "weekly":
                     DateOnly lastMonday = GetLastMonday(currentDate);
-                    DateOnly nextSunday = lastMonday.AddDays(6);
                     currentAssignment.StartDate = lastMonday;
-                    currentAssignment.EndDate = nextSunday;
+                    currentAssignment.EndDate = lastMonday.AddDays(6);
                     break;
 
                 case "fortnightly":
@@ -62,17 +69,18 @@ public class AssignmentUpdateService : IAssignmentUpdateService
                     currentAssignment.StartDate = lastWednesday;
                     currentAssignment.EndDate = lastWednesday.AddDays(13);
                     break;
-
                 default:
+                    _logger.LogError("Unsupported PeriodType {PeriodType} for TaskId {TaskId}", task.PeriodType, assignment.TaskId);
                     throw new InvalidOperationException($"Unsupported PeriodType: {task.PeriodType}");
             }
 
             RotateMemberList(currentAssignment, context);
             context.SaveChanges();
+            _logger.LogInformation("Successfully updated AssignmentId {AssignmentId}", assignment.Id);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"An error occurred while updating task assignment: {ex.Message}");
+            _logger.LogError(ex, "Error updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
             _slackService.SendFailedMessageToSlack($"Failed to update task assignment: {ex.Message}");
             throw;
         }
@@ -95,9 +103,38 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"An error occurred while rotating the member list: {ex.Message}");
+            _logger.LogError(ex, "Error rotating member list for AssignmentId {AssignmentId}", assignment.Id);
             throw;
         }
+    }
+
+    public TaskAssignment ModifyTaskAssignment(int id, ModifyAssignmentDto modifyAssignmentDto)
+    {
+        using var correlationIdScope = LogContext.PushProperty("CorrelationId", Guid.NewGuid());
+        
+        using var context = _contextFactory.CreateDbContext();
+        var modifiedAssignment = context.TaskAssignments.FirstOrDefault(a => a.Id == id);
+
+        if (modifiedAssignment == null)
+        {
+            _logger.LogWarning("Assignment not found for AssignmentId {AssignmentId}", id);
+            throw new InvalidOperationException("Assignment not found.");
+        }
+
+        var member = context.Members
+            .FirstOrDefault(m => m.Host == modifyAssignmentDto.Host);
+
+        if (member == null)
+        {
+            _logger.LogWarning("Member not found for Host {Host}", modifyAssignmentDto.Host);
+            throw new InvalidOperationException("Member not found.");
+        }
+
+        modifiedAssignment.MemberId = member.Id;
+        context.SaveChanges();
+        
+        _logger.LogInformation("Successfully modified AssignmentId {AssignmentId} to MemberId {MemberId}", id, member.Id);
+        return modifiedAssignment;
     }
 
     private DateOnly GetLastMonday(DateOnly date)
@@ -112,32 +149,5 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         int daysBack = (int)date.DayOfWeek - (int)DayOfWeek.Wednesday;
         if (daysBack < 0) daysBack += 7;
         return date.AddDays(-daysBack);
-    }
-
-    public TaskAssignment ModifyTaskAssignment(int id, ModifyAssignmentDto modifyAssignmentDto)
-    {
-        using var context = _contextFactory.CreateDbContext();
-
-        var modifiedAssignment = context.TaskAssignments
-            .FirstOrDefault(a => a.Id == id);
-
-        if (modifiedAssignment == null)
-        {
-            throw new InvalidOperationException("Assignment not found.");
-        }
-
-        var member = context.Members
-            .FirstOrDefault(m => m.Host == modifyAssignmentDto.Host);
-
-        if (member == null)
-        {
-            throw new InvalidOperationException("Member not found.");
-        }
-
-        modifiedAssignment.MemberId = member.Id;
-
-        context.SaveChanges();
-
-        return modifiedAssignment;
     }
 }
