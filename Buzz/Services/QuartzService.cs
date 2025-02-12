@@ -9,18 +9,23 @@ public class QuartzService
 {
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IWorkingDayCheckService _workingDayCheckService;
+    private readonly ILogger<QuartzService> _logger;
 
-    public QuartzService(ISchedulerFactory schedulerFactory, IWorkingDayCheckService workingDayCheckService)
+
+    public QuartzService(ISchedulerFactory schedulerFactory, IWorkingDayCheckService workingDayCheckService, ILogger<QuartzService> logger)
     {
         _schedulerFactory = schedulerFactory;
         _workingDayCheckService = workingDayCheckService;
+        _logger = logger;
     }
 
     public async Task ConfigureJobsAsync()
     {
         DateTime currentDate = DateTime.Today;
-        bool isWorkingDay = await _workingDayCheckService.IsWorkingDayCheck(currentDate);
+        _logger.LogInformation("Checking if today is a working day: {currentDate}", currentDate);
 
+        bool isWorkingDay = await _workingDayCheckService.IsWorkingDayCheck(currentDate);
+        
         if (isWorkingDay)
         {
             var scheduler = await _schedulerFactory.GetScheduler();
@@ -46,8 +51,12 @@ public class QuartzService
                 .WithIdentity("SendToSlackJob-trigger")
                 .WithCronSchedule("0 0 8 * * ?")
                 .Build();
-
+            
             await scheduler.ScheduleJob(slackJobDetail, slackJobTrigger);
+        }
+        else
+        {
+            _logger.LogInformation("Today is not a working day, skipping job configuration.");
         }
     }
 }
