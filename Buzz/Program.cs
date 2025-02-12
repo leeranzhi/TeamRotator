@@ -3,6 +3,7 @@ using Buzz.Model;
 using Buzz.Services;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +53,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+
+// 配置 Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();  // 替换默认日志
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.WithCorrelationId()  // 添加 CorrelationId
+    .WriteTo.Console()
+    .CreateLogger();
+
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
