@@ -4,6 +4,7 @@ using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Buzz.Services;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Xunit;
 using Task = Buzz.Model.Task;
@@ -55,8 +56,9 @@ public class RotationServiceTests
         mockFactory.Setup(f => f.CreateDbContext()).Returns(mockContext);
 
         var mockAssignmentUpdateService = new Mock<IAssignmentUpdateService>();
+        var mockLogger = new Mock<ILogger<AssignmentUpdateService>>();
 
-        var service = new RotationService(mockFactory.Object, mockAssignmentUpdateService.Object);
+        var service = new RotationService(mockFactory.Object, mockAssignmentUpdateService.Object, mockLogger.Object);
 
         // Act
         var result = service.GetRotationList();
