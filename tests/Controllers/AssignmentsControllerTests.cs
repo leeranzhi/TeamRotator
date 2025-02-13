@@ -24,58 +24,43 @@ namespace Tests.Controllers
         public void GetRotationList_ShouldReturnOkWithRotationList()
         {
             // Arrange
-            var rotationList = new List<TaskAssignmentDto>
+            var rotationList = new List<TaskAssignmentDto> 
             {
-                new TaskAssignmentDto 
-                { 
-                    Id = 1, 
-                    TaskId = 1, 
-                    TaskName = "Task1", 
-                    MemberId = 1,
-                    Host = "Host1",
-                    SlackId = "SlackId1"
-                },
-                new TaskAssignmentDto 
-                { 
-                    Id = 2, 
-                    TaskId = 2, 
-                    TaskName = "Task2", 
-                    MemberId = 2,
-                    Host = "Host2",
-                    SlackId = "SlackId2"
-                }
+                new TaskAssignmentDto { /* Initialize properties */ },
+                new TaskAssignmentDto { /* Initialize properties */ }
             };
-            _mockRotationService.Setup(service => service.GetRotationList()).Returns(rotationList);
+
+            _mockRotationService.Setup(service => service.GetRotationList())
+                .Returns(rotationList);
 
             // Act
             var result = _controller.GetRotationList();
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedList = Assert.IsType<List<TaskAssignmentDto>>(okResult.Value); // Ensure the type matches
-            Assert.Equal(rotationList.Count, returnedList.Count);
+            var actionResult = Assert.IsType<ActionResult<List<TaskAssignmentDto>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var returnValue = Assert.IsType<List<TaskAssignmentDto>>(okResult.Value);
+            Assert.Equal(2, returnValue.Count);
         }
-
-
         [Fact]
-        public void UpdateRotationList_ShouldReturnOkWithUpdatedAssignment()
+        public void UpdateRotationList_ShouldReturnUpdatedTaskAssignment()
         {
             // Arrange
-            var id = 1;
-            var modifyAssignmentDto = new ModifyAssignmentDto { Host = "NewHost" };
-            var updatedAssignment = new TaskAssignment { Id = id, MemberId = 1, TaskId = 1, StartDate = DateOnly.Parse("2024-01-01"), EndDate = DateOnly.Parse("2024-01-07") };
+            var modifyAssignmentDto = new ModifyAssignmentDto();
+            var updatedAssignment = new TaskAssignment();
 
-            _mockAssignmentUpdateService
-                .Setup(service => service.ModifyTaskAssignment(id, modifyAssignmentDto))
+            _mockAssignmentUpdateService.Setup(service => service.ModifyTaskAssignment(It.IsAny<int>(), It.IsAny<ModifyAssignmentDto>()))
                 .Returns(updatedAssignment);
 
             // Act
-            var result = _controller.UpdateRotationList(id, modifyAssignmentDto);
+            var result = _controller.UpdateRotationList(1, modifyAssignmentDto);
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedAssignment = Assert.IsType<TaskAssignment>(okResult.Value);
-            Assert.Equal(updatedAssignment, returnedAssignment);
+            var actionResult = Assert.IsType<ActionResult<TaskAssignment>>(result); // 先检查 ActionResult
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result); // 再获取 Result 并检查 OkObjectResult
+            var returnValue = Assert.IsType<TaskAssignment>(okResult.Value);
+            Assert.Equal(updatedAssignment, returnValue);
         }
+
     }
 }

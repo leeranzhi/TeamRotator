@@ -6,28 +6,20 @@ namespace Buzz.Controllers;
 
 [ApiController]
 [Route("assignments")]
-public class AssignmentsController : ControllerBase
+public class AssignmentsController(IRotationService rotationService, IAssignmentUpdateService assignmentUpdateService)
+    : ControllerBase
 {
-    private readonly IRotationService _rotationService;
-    private readonly IAssignmentUpdateService _assignmentUpdateService;
-
-    public AssignmentsController(IRotationService rotationService, IAssignmentUpdateService assignmentUpdateService)
-    {
-        _rotationService = rotationService;
-        _assignmentUpdateService = assignmentUpdateService;
-    }
-
     [HttpGet]
     public ActionResult<List<TaskAssignmentDto>> GetRotationList()
     {
-        var rotationList = _rotationService.GetRotationList();
+        var rotationList = rotationService.GetRotationList();
         return Ok(rotationList); 
     }
 
     [HttpPut("{id}")]
     public ActionResult<TaskAssignment> UpdateRotationList(int id, [FromBody] ModifyAssignmentDto modifyAssignmentDto)
     {
-        var updatedAssignment = _assignmentUpdateService.ModifyTaskAssignment(id, modifyAssignmentDto);
+        var updatedAssignment = assignmentUpdateService.ModifyTaskAssignment(id, modifyAssignmentDto);
         
         return Ok(updatedAssignment);
     }
