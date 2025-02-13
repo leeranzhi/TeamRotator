@@ -2,6 +2,8 @@ using Buzz;
 using Buzz.Model;
 using Buzz.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 using Task = Buzz.Model.Task;
 
@@ -53,7 +55,9 @@ public class AssignmentUpdateServiceTests
         // Act
         using (var context = new RotationDbContext(options))
         {
-            var service = new AssignmentUpdateService(new DbContextFactory(options), null, timeProvider);
+            var mockLogger = new Mock<ILogger<AssignmentUpdateService>>();
+            var service = new AssignmentUpdateService(new DbContextFactory(options), null, mockLogger.Object, timeProvider);
+
             var assignment = new TaskAssignment
             {
                 Id = 1, TaskId = 1, MemberId = 1, StartDate = new DateOnly(2024, 9, 1),

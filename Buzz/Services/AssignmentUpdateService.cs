@@ -5,30 +5,21 @@ using Serilog.Context;
 
 namespace Buzz.Services;
 
-public class AssignmentUpdateService : IAssignmentUpdateService
+public class AssignmentUpdateService(IDbContextFactory<RotationDbContext> contextFactory,
+        SendToSlackService slackService,
+        ILogger<AssignmentUpdateService> logger, ITimeProvider? timeProvider = null)
+    : IAssignmentUpdateService
 {
-    private readonly IDbContextFactory<RotationDbContext> _contextFactory;
-    private readonly SendToSlackService _slackService;
-    private readonly ITimeProvider _timeProvider;
-    private readonly ILogger<AssignmentUpdateService> _logger;
-
-    public AssignmentUpdateService(IDbContextFactory<RotationDbContext> contextFactory, SendToSlackService slackService,
-        ILogger<AssignmentUpdateService> logger, ITimeProvider timeProvider = null)
-    {
-        _contextFactory = contextFactory;
-        _slackService = slackService;
-        _timeProvider = timeProvider ?? new DefaultTimeProvider();
-        _logger = logger;
-    }
+    private readonly ITimeProvider _timeProvider = timeProvider ?? new DefaultTimeProvider();
 
     public void UpdateTaskAssignment(TaskAssignment assignment)
     {
         using var correlationIdScope = LogContext.PushProperty("CorrelationId", Guid.NewGuid());
-        _logger.LogInformation("Updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
+        logger.LogInformation("Updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
         
         try
         {
-            using var context = _contextFactory.CreateDbContext();
+            using var context = contextFactory.CreateDbContext();
             var task = context.Tasks
                 .Where(t => t.Id == assignment.TaskId)
                 .Select(t => new { t.PeriodType })
@@ -38,7 +29,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
 
             if (task == null)
             {
-                _logger.LogWarning("Task not found for TaskId {TaskId}", assignment.TaskId);
+                logger.LogWarning("Task not found for TaskId {TaskId}", assignment.TaskId);
                 throw new InvalidOperationException("Task not found.");
             }
 
@@ -47,7 +38,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
 
             if (currentAssignment == null)
             {
-                _logger.LogWarning("Assignment not found for AssignmentId {AssignmentId}", assignment.Id);
+                logger.LogWarning("Assignment not found for AssignmentId {AssignmentId}", assignment.Id);
                 throw new InvalidOperationException("Assignment not found.");
             }
 
@@ -70,18 +61,18 @@ public class AssignmentUpdateService : IAssignmentUpdateService
                     currentAssignment.EndDate = lastWednesday.AddDays(13);
                     break;
                 default:
-                    _logger.LogError("Unsupported PeriodType {PeriodType} for TaskId {TaskId}", task.PeriodType, assignment.TaskId);
+                    logger.LogError("Unsupported PeriodType {PeriodType} for TaskId {TaskId}", task.PeriodType, assignment.TaskId);
                     throw new InvalidOperationException($"Unsupported PeriodType: {task.PeriodType}");
             }
 
             RotateMemberList(currentAssignment, context);
             context.SaveChanges();
-            _logger.LogInformation("Successfully updated AssignmentId {AssignmentId}", assignment.Id);
+            logger.LogInformation("Successfully updated AssignmentId {AssignmentId}", assignment.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
-            _slackService.SendFailedMessageToSlack($"Failed to update task assignment: {ex.Message}");
+            logger.LogError(ex, "Error updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
+            slackService.SendFailedMessageToSlack($"Failed to update task assignment: {ex.Message}");
             throw;
         }
     }
@@ -103,7 +94,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error rotating member list for AssignmentId {AssignmentId}", assignment.Id);
+            logger.LogError(ex, "Error rotating member list for AssignmentId {AssignmentId}", assignment.Id);
             throw;
         }
     }
@@ -112,12 +103,12 @@ public class AssignmentUpdateService : IAssignmentUpdateService
     {
         using var correlationIdScope = LogContext.PushProperty("CorrelationId", Guid.NewGuid());
         
-        using var context = _contextFactory.CreateDbContext();
+        using var context = contextFactory.CreateDbContext();
         var modifiedAssignment = context.TaskAssignments.FirstOrDefault(a => a.Id == id);
 
         if (modifiedAssignment == null)
         {
-            _logger.LogWarning("Assignment not found for AssignmentId {AssignmentId}", id);
+            logger.LogWarning("Assignment not found for AssignmentId {AssignmentId}", id);
             throw new InvalidOperationException("Assignment not found.");
         }
 
@@ -126,14 +117,14 @@ public class AssignmentUpdateService : IAssignmentUpdateService
 
         if (member == null)
         {
-            _logger.LogWarning("Member not found for Host {Host}", modifyAssignmentDto.Host);
+            logger.LogWarning("Member not found for Host {Host}", modifyAssignmentDto.Host);
             throw new InvalidOperationException("Member not found.");
         }
 
         modifiedAssignment.MemberId = member.Id;
         context.SaveChanges();
         
-        _logger.LogInformation("Successfully modified AssignmentId {AssignmentId} to MemberId {MemberId}", id, member.Id);
+        logger.LogInformation("Successfully modified AssignmentId {AssignmentId} to MemberId {MemberId}", id, member.Id);
         return modifiedAssignment;
     }
 
