@@ -4,6 +4,7 @@ using Buzz;
 using Buzz.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -40,12 +41,14 @@ public class SendToSlackServiceTests
 
         var httpClient = new HttpClient(handler.Object);
         mockHttpClientFactory.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(httpClient);
+        var mockLogger = new Mock<ILogger<AssignmentUpdateService>>();
 
         // Create service instance
         var sendToSlackService = new SendToSlackService(
             mockContextFactory.Object,
             mockHttpClientFactory.Object,
-            mockConfiguration.Object
+            mockConfiguration.Object,
+            mockLogger.Object
         );
 
         var failureMessage = "Test failure message";

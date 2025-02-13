@@ -1,6 +1,7 @@
 using System.Net;
 using Buzz.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -9,24 +10,23 @@ namespace Tests.Services
 {
     public class WorkingDayCheckServiceTests
     {
-        private readonly Mock<IConfiguration> _mockConfiguration;
-        private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
         private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
         private readonly WorkingDayCheckService _service;
 
         public WorkingDayCheckServiceTests()
         {
-            _mockConfiguration = new Mock<IConfiguration>();
-            _mockConfiguration.Setup(x => x["HolidayApiSettings:Url"]).Returns("http://test.com");
+            Mock<IConfiguration> mockConfiguration = new();
+            mockConfiguration.Setup(x => x["HolidayApiSettings:Url"]).Returns("http://test.com");
             
             _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
             var client = new HttpClient(_mockHttpMessageHandler.Object);
             
-            _mockHttpClientFactory = new Mock<IHttpClientFactory>();
-            _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>()))
+            Mock<IHttpClientFactory> mockHttpClientFactory = new();
+            mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>()))
                 .Returns(client);
+            var mockLogger = new Mock<ILogger<AssignmentUpdateService>>();
 
-            _service = new WorkingDayCheckService(_mockConfiguration.Object, _mockHttpClientFactory.Object);
+            _service = new WorkingDayCheckService(mockConfiguration.Object, mockHttpClientFactory.Object, mockLogger.Object);
         }
 
         [Fact]

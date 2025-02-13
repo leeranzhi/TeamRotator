@@ -5,29 +5,30 @@ using Newtonsoft.Json;
 
 namespace Buzz.Services;
 
-public class WorkingDayCheckService : IWorkingDayCheckService
+public class WorkingDayCheckService(IConfiguration configuration, IHttpClientFactory httpClientFactory,
+        ILogger<AssignmentUpdateService> logger)
+    : IWorkingDayCheckService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly string _baseUrl;
-
-    public WorkingDayCheckService(IConfiguration configuration, IHttpClientFactory httpClientFactory)
-    {
-        _baseUrl = configuration["HolidayApiSettings:Url"];
-        _httpClientFactory = httpClientFactory;
-    }
+    private readonly string _baseUrl = configuration["HolidayApiSettings:Url"];
 
     public async Task<bool> IsWorkingDayCheck(DateTime currentDate)
     {
+        logger.LogInformation("Checking if {Date} is a working day.", currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
         var year = currentDate.Year;
         var holidays = await GetHolidays(year);
         var holiday = holidays.Find(h => h.Date == currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
         if (holiday != null)
         {
+            logger.LogInformation("Found holiday on {Date}. IsOffDay: {IsOffDay}", currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), holiday.IsOffDay);
             return !holiday.IsOffDay;
         }
 
-        return !(currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday);
+        bool isWorkingDay = !(currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday);
+        logger.LogInformation("No holiday found. Checking weekend: {IsWorkingDay}", isWorkingDay);
+
+        return isWorkingDay;
     }
 
     private async Task<List<HolidayDto>> GetHolidays(int year)
@@ -35,7 +36,9 @@ public class WorkingDayCheckService : IWorkingDayCheckService
         var url = $"{_baseUrl}/{year}.json";
         try
         {
-            var client = _httpClientFactory.CreateClient();
+            logger.LogInformation("Fetching holidays for year {Year} from {Url}", year, url);
+
+            var client = httpClientFactory.CreateClient();
             HttpResponseMessage response = await client.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
@@ -43,11 +46,13 @@ public class WorkingDayCheckService : IWorkingDayCheckService
 
             HolidaysResponse? holidays = JsonConvert.DeserializeObject<HolidaysResponse>(jsonContent);
 
+            logger.LogInformation("Successfully fetched holidays for year {Year}", year);
+
             return holidays?.Days ?? new List<HolidayDto>();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching JSON data: {ex.Message}");
+            logger.LogError(ex, "Error fetching JSON data for year {Year}", year);
             return new List<HolidayDto>();
         }
     }

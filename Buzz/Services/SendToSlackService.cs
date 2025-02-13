@@ -4,29 +4,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Buzz.Services;
 
-public class SendToSlackService
+public class SendToSlackService(IDbContextFactory<RotationDbContext> contextFactory,
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration,
+    ILogger<AssignmentUpdateService> logger)
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IDbContextFactory<RotationDbContext> _contextFactory;
-    private readonly string _slackWebhookUrl;
-    private readonly string _personalSlackUrl;
-
-    public SendToSlackService(
-        IDbContextFactory<RotationDbContext> contextFactory,
-        IHttpClientFactory httpClientFactory,
-        IConfiguration configuration)
-    {
-        _contextFactory = contextFactory;
-        _httpClientFactory = httpClientFactory;
-        _slackWebhookUrl = configuration["Slack:WebhookUrl"];
-        _personalSlackUrl = configuration["Slack:PersonalWebhookUrl"];
-    }
+    private readonly string _slackWebhookUrl = configuration["Slack:WebhookUrl"];
+    private readonly string _personalSlackUrl = configuration["Slack:PersonalWebhookUrl"];
 
     public async Task SendSlackMessage()
     {
         try
         {
-            using var context = _contextFactory.CreateDbContext();
+            using var context = contextFactory.CreateDbContext();
+
+            logger.LogInformation("Sending Slack message...");
 
             var taskAssignments = await context.TaskAssignments
                 .Join(context.Members,
@@ -69,16 +61,21 @@ public class SendToSlackService
             var payload = new { text = messageBuilder.ToString() };
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var client = _httpClientFactory.CreateClient();
+            var client = httpClientFactory.CreateClient();
             var response = await client.PostAsync(_slackWebhookUrl, content);
 
-            Console.WriteLine(response.IsSuccessStatusCode
-                ? "Message sent successfully to Slack!"
-                : $"Failed to send message to Slack. Status code: {response.StatusCode}");
+            if (response.IsSuccessStatusCode)
+            {
+                logger.LogInformation("Message sent successfully to Slack!");
+            }
+            else
+            {
+                logger.LogError($"Failed to send message to Slack. Status code: {response.StatusCode}");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"An error occurred while sending message to Slack: {ex.Message}");
+            logger.LogError($"An error occurred while sending message to Slack: {ex.Message}");
         }
     }
 
@@ -86,19 +83,26 @@ public class SendToSlackService
     {
         try
         {
+            logger.LogInformation("Sending failure message to Slack...");
+
             var payload = new { text = failedMessage };
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var client = _httpClientFactory.CreateClient();
+            var client = httpClientFactory.CreateClient();
             var response = await client.PostAsync(_personalSlackUrl, content);
 
-            Console.WriteLine(response.IsSuccessStatusCode
-                ? "Failure message sent to personal Slack URL!"
-                : $"Failed to send failure message to personal Slack URL. Status code: {response.StatusCode}");
+            if (response.IsSuccessStatusCode)
+            {
+                logger.LogInformation("Failure message sent to personal Slack URL!");
+            }
+            else
+            {
+                logger.LogError($"Failed to send failure message to personal Slack URL. Status code: {response.StatusCode}");
+            }
         }
         catch (Exception e)
         {
-            Console.WriteLine($"An error occurred while sending failure message to personal Slack URL: {e.Message}");
+            logger.LogError($"An error occurred while sending failure message to personal Slack URL: {e.Message}");
         }
     }
 }
