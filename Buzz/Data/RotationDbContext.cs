@@ -19,7 +19,7 @@ public class RotationDbContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseNpgsql("Host=localhost;Port=5433;Username=postgres;Password=password;Database=postgres");
+            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Username=postgres;Password=password;Database=postgres");
         }
     }
     
@@ -42,7 +42,7 @@ public class RotationDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.TaskName).HasColumnName("task_name");
-            entity.Property(e => e.PeriodType).HasColumnName("period_type");
+            entity.Property(e => e.RotationRule).HasColumnName("rotation_rule");
         });
         
         modelBuilder.Entity<Member>(entity =>

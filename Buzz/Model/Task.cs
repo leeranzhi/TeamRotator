@@ -6,5 +6,5 @@ public class Task
 {
     [Key] public int Id { get; set; }
     public string? TaskName { get; set; }
-    public string? PeriodType { get; set; }
+    public string? RotationRule { get; set; }
 }
