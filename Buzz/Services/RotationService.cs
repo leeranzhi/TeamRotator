@@ -1,6 +1,7 @@
 using Buzz.Dto;
 using Buzz.Model;
 using Microsoft.EntityFrameworkCore;
+using Task = System.Threading.Tasks.Task;
 
 namespace Buzz.Services;
 
@@ -63,7 +64,7 @@ public class RotationService(IDbContextFactory<RotationDbContext> contextFactory
         return shouldUpdate;
     }
 
-    public void UpdateTaskAssignmentList()
+    public async Task UpdateTaskAssignmentList()
     {
         logger.LogInformation("Starting updating all task assignment...");
 
@@ -74,7 +75,7 @@ public class RotationService(IDbContextFactory<RotationDbContext> contextFactory
             if (ShouldUpdateAssignment(taskAssignment))
             {
                 logger.LogInformation("Updating assignment ID {AssignmentId} for Task ID {TaskId}", taskAssignment.Id, taskAssignment.TaskId);
-                assignmentUpdateService.UpdateTaskAssignment(taskAssignment);
+                await assignmentUpdateService.UpdateTaskAssignment(taskAssignment);
             }
             else
             {
