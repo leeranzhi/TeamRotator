@@ -33,42 +33,42 @@ public class AssignmentUpdateServiceTests
 
         using (var context = new RotationDbContext(options))
         {
-            context.Tasks.Add(new Task { Id = 1, PeriodType = "weekly" });
+            context.Tasks.Add(new Task { Id = 1,  RotationRule= "daily" });
             context.TaskAssignments.Add(new TaskAssignment
             {
                 Id = 1,
-                TaskId = 1,
+                TaskId = 2,
                 StartDate = new DateOnly(2024, 9, 1),
-                EndDate = new DateOnly(2024, 9, 7),
+                EndDate = new DateOnly(2024, 9, 1),
                 MemberId = 1,
             });
             context.Members.AddRange(
                 new Member { Id = 1, SlackId = "P00000NN999", Host = "zhiqiao" },
-                new Member { Id = 2, SlackId = "U66637NN5DX", Host = "yahui" }
+                new Member { Id = 2, SlackId = "U66666NN5DX", Host = "yahui" }
             );
             context.SaveChanges();
         }
 
-        var fakeCurrentDate = new DateOnly(2024, 9, 5);
+        var fakeCurrentDate = new DateOnly(2024, 9, 2);
         var timeProvider = new TestTimeProvider(fakeCurrentDate);
 
         // Act
         using (var context = new RotationDbContext(options))
         {
             var mockLogger = new Mock<ILogger<AssignmentUpdateService>>();
-            var service = new AssignmentUpdateService(new DbContextFactory(options), null, mockLogger.Object, timeProvider);
+            var service = new AssignmentUpdateService(new DbContextFactory(options), null, mockLogger.Object,null, timeProvider);
 
             var assignment = new TaskAssignment
             {
-                Id = 1, TaskId = 1, MemberId = 1, StartDate = new DateOnly(2024, 9, 1),
-                EndDate = new DateOnly(2024, 9, 7)
+                Id = 1, TaskId = 2, MemberId = 1, StartDate = new DateOnly(2024, 9, 1),
+                EndDate = new DateOnly(2024, 9, 1)
             };
             service.UpdateTaskAssignment(assignment);
 
             // Assert
             var updatedAssignment = context.TaskAssignments.Single(a => a.Id == 1);
             Assert.Equal(new DateOnly(2024, 9, 2), updatedAssignment.StartDate);
-            Assert.Equal(new DateOnly(2024, 9, 8), updatedAssignment.EndDate);
+            Assert.Equal(new DateOnly(2024, 9, 2), updatedAssignment.EndDate);
         }
     }
 }
