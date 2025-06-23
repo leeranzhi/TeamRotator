@@ -56,6 +56,24 @@ using (var scope = app.Services.CreateScope())
 {
     var quartzService = scope.ServiceProvider.GetRequiredService<QuartzService>();
     await quartzService.ConfigureJobsAsync();
+    var dbContext = scope.ServiceProvider.GetRequiredService<RotationDbContext>();
+    
+    try 
+    {
+        Log.Information("正在检查数据库连接...");
+        var canConnect = await dbContext.Database.CanConnectAsync();
+        if (!canConnect)
+        {
+            Log.Error("数据库连接失败");
+            throw new Exception("数据库连接失败");
+        }
+        Log.Information("数据库连接成功");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "数据库连接失败: {ErrorMessage}", ex.Message);
+        throw; // 如果数据库连接失败，应用程序应该停止启动
+    }
 }
 
 if (app.Environment.IsDevelopment())
