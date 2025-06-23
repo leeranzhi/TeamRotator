@@ -1,0 +1,31 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A7F5E42E-B49B-4B4F-9F77-D87567E50751}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Api", "src\TeamRotator.Api\TeamRotator.Api.csproj", "{C8E9A485-EFD8-4E7C-8E15-E16B7C0E514D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Core", "src\TeamRotator.Core\TeamRotator.Core.csproj", "{A8E9A485-EFD8-4E7C-8E15-E16B7C0E514E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Infrastructure", "src\TeamRotator.Infrastructure\TeamRotator.Infrastructure.csproj", "{B8E9A485-EFD8-4E7C-8E15-E16B7C0E514F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Tests", "tests\TeamRotator.Tests\TeamRotator.Tests.csproj", "{D8E9A485-EFD8-4E7C-8E15-E16B7C0E5150}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C8E9A485-EFD8-4E7C-8E15-E16B7C0E514D} = {D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}
+		{A8E9A485-EFD8-4E7C-8E15-E16B7C0E514E} = {D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}
+		{B8E9A485-EFD8-4E7C-8E15-E16B7C0E514F} = {D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}
+		{D8E9A485-EFD8-4E7C-8E15-E16B7C0E5150} = {A7F5E42E-B49B-4B4F-9F77-D87567E50751}
+	EndGlobalSection
+EndGlobal 

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <RootNamespace>TeamRotator.Core</RootNamespace>
+        <AssemblyName>TeamRotator.Core</AssemblyName>
+    </PropertyGroup>
+</Project> 
