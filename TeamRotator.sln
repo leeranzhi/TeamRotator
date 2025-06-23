@@ -2,17 +2,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D4F5F6A7-B8C9-4D0A-9E1F-2C3B4D5E6F7A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A7F5E42E-B49B-4B4F-9F77-D87567E50751}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Api", "src\TeamRotator.Api\TeamRotator.Api.csproj", "{1A2B3C4D-5E6F-7G8H-9I0J-1K2L3M4N5O6P}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Api", "src\TeamRotator.Api\TeamRotator.Api.csproj", "{C8E9A485-EFD8-4E7C-8E15-E16B7C0E514D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Core", "src\TeamRotator.Core\TeamRotator.Core.csproj", "{2B3C4D5E-6F7G-8H9I-0J1K-2L3M4N5O6P7Q}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Core", "src\TeamRotator.Core\TeamRotator.Core.csproj", "{A8E9A485-EFD8-4E7C-8E15-E16B7C0E514E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Infrastructure", "src\TeamRotator.Infrastructure\TeamRotator.Infrastructure.csproj", "{3C4D5E6F-7G8H-9I0J-1K2L-3M4N5O6P7Q8R}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Infrastructure", "src\TeamRotator.Infrastructure\TeamRotator.Infrastructure.csproj", "{B8E9A485-EFD8-4E7C-8E15-E16B7C0E514F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E5F6G7H8-I9J0-K1L2-M3N4-O5P6Q7R8S9T0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Tests", "tests\TeamRotator.Tests\TeamRotator.Tests.csproj", "{D8E9A485-EFD8-4E7C-8E15-E16B7C0E5150}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamRotator.Tests", "tests\TeamRotator.Tests\TeamRotator.Tests.csproj", "{4D5E6F7G-8H9I-0J1K-2L3M-4N5O6P7Q8R9S}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,10 +22,28 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1A2B3C4D-5E6F-7G8H-9I0J-1K2L3M4N5O6P}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A2B3C4D-5E6F-7G8H-9I0J-1K2L3M4N5O6P}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A2B3C4D-5E6F-7G8H-9I0J-1K2L3M4N5O6P}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A2B3C4D-5E6F-7G8H-9I0J-1K2L3M4N5O6P}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B3C4D5E-6F7G-8H9I-0J1K-2L3M4N5O6P7Q}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B3C4D5E-6F7G-8H9I-0J1K-2L3M4N5O6P7Q}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B3C4D5E-6F7G-8H9I-0J1K-2L3M4N5O6P7Q}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B3C4D5E-6F7G-8H9I-0J1K-2L3M4N5O6P7Q}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C4D5E6F-7G8H-9I0J-1K2L-3M4N5O6P7Q8R}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C4D5E6F-7G8H-9I0J-1K2L-3M4N5O6P7Q8R}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C4D5E6F-7G8H-9I0J-1K2L-3M4N5O6P7Q8R}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C4D5E6F-7G8H-9I0J-1K2L-3M4N5O6P7Q8R}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D5E6F7G-8H9I-0J1K-2L3M-4N5O6P7Q8R9S}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D5E6F7G-8H9I-0J1K-2L3M-4N5O6P7Q8R9S}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D5E6F7G-8H9I-0J1K-2L3M-4N5O6P7Q8R9S}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D5E6F7G-8H9I-0J1K-2L3M-4N5O6P7Q8R9S}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{C8E9A485-EFD8-4E7C-8E15-E16B7C0E514D} = {D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}
-		{A8E9A485-EFD8-4E7C-8E15-E16B7C0E514E} = {D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}
-		{B8E9A485-EFD8-4E7C-8E15-E16B7C0E514F} = {D396A562-3E2A-4B9B-A3F0-118F7C5E1E64}
-		{D8E9A485-EFD8-4E7C-8E15-E16B7C0E5150} = {A7F5E42E-B49B-4B4F-9F77-D87567E50751}
+		{1A2B3C4D-5E6F-7G8H-9I0J-1K2L3M4N5O6P} = {D4F5F6A7-B8C9-4D0A-9E1F-2C3B4D5E6F7A}
+		{2B3C4D5E-6F7G-8H9I-0J1K-2L3M4N5O6P7Q} = {D4F5F6A7-B8C9-4D0A-9E1F-2C3B4D5E6F7A}
+		{3C4D5E6F-7G8H-9I0J-1K2L-3M4N5O6P7Q8R} = {D4F5F6A7-B8C9-4D0A-9E1F-2C3B4D5E6F7A}
+		{4D5E6F7G-8H9I-0J1K-2L3M-4N5O6P7Q8R9S} = {E5F6G7H8-I9J0-K1L2-M3N4-O5P6Q7R8S9T0}
 	EndGlobalSection
 EndGlobal 
