@@ -24,4 +24,16 @@ public abstract class BaseController : ControllerBase
             _ => StatusCode(500, "An unexpected error occurred")
         };
     }
+
+    protected ActionResult<T> HandleException<T>(Exception ex)
+    {
+        Logger.LogError(ex, "An error occurred while processing the request");
+
+        return ex switch
+        {
+            InvalidOperationException => BadRequest(ex.Message),
+            ArgumentException => BadRequest(ex.Message),
+            _ => StatusCode(500, "An unexpected error occurred")
+        };
+    }
 } 
