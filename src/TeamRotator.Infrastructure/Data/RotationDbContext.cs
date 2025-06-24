@@ -9,7 +9,7 @@ public class RotationDbContext : DbContext
     private readonly ILogger<RotationDbContext>? _logger;
 
     public DbSet<TaskAssignment> TaskAssignments { get; set; } = null!;
-    public DbSet<Task> Tasks { get; set; } = null!;
+    public DbSet<RotationTask> Tasks { get; set; } = null!;
     public DbSet<Member> Members { get; set; } = null!;
 
     public RotationDbContext(DbContextOptions<RotationDbContext> options, ILogger<RotationDbContext>? logger = null) 
@@ -40,7 +40,7 @@ public class RotationDbContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
         });
 
-        modelBuilder.Entity<Task>(entity =>
+        modelBuilder.Entity<RotationTask>(entity =>
         {
             entity.ToTable("tasks");
 
