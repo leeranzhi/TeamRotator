@@ -557,3 +557,4 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
+Buzz/appsettings.json
