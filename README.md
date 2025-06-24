@@ -1,90 +1,179 @@
 # TeamRotator
 
-TeamRotator 是一个任务轮值管理系统，用于自动化管理团队成员的轮值任务。
+TeamRotator is an automated task rotation management system designed to streamline team member duty assignments.
 
-## 功能特点
+## Features
 
-- 支持多种轮值规则（每日、每周、每两周）
-- 自动跳过节假日
-- Slack 通知集成
-- RESTful API 接口
-- PostgreSQL 数据存储
+- Multiple rotation rules (daily, weekly, bi-weekly)
+- Automatic holiday skipping
+- Slack integration for notifications
+- RESTful API endpoints
+- PostgreSQL database
+- Automated scheduling with Quartz.NET
 
-## 项目结构
+## Project Structure
 
-项目采用三层架构：
+The project follows a three-layer architecture:
 
 ```
 src/
-├── TeamRotator.Core/         # 核心层：实体和接口定义
-├── TeamRotator.Infrastructure/   # 基础设施层：数据访问和服务实现
-└── TeamRotator.Api/         # API层：控制器和配置
+├── TeamRotator.Core/           # Core layer: Entities and interfaces
+├── TeamRotator.Infrastructure/ # Infrastructure layer: Data access and services
+└── TeamRotator.Api/           # API layer: Controllers and configuration
 ```
 
-## 开发环境要求
+## Prerequisites
 
 - .NET 8.0 SDK
 - PostgreSQL 16
-- Docker（可选，用于运行数据库）
+- Docker (optional, for running PostgreSQL)
+- IDE (recommended: Visual Studio 2022 or JetBrains Rider)
 
-## 快速开始
+## Local Development Setup
 
-1. 克隆仓库：
+### 1. Database Setup
+
+#### Option 1: Using Docker (Recommended)
 ```bash
-git clone https://github.com/leeranzhi/TeamRotator.git
-cd TeamRotator
-```
-
-2. 启动 PostgreSQL（使用 Docker）：
-```bash
+# Start PostgreSQL container
 docker run --name teamrotator-postgres \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_DB=teamrotator \
   -p 5433:5432 \
   -d postgres:16
+
+# To stop the container
+docker stop teamrotator-postgres
+
+# To start an existing container
+docker start teamrotator-postgres
 ```
 
-3. 更新数据库：
+#### Option 2: Local PostgreSQL Installation
+- Install PostgreSQL 16 from https://www.postgresql.org/download/
+- Create a new database named 'teamrotator'
+- Update connection string in appsettings.json accordingly
+
+### 2. Application Configuration
+
+1. Clone the repository:
+```bash
+git clone https://github.com/leeranzhi/TeamRotator.git
+cd TeamRotator
+```
+
+2. Configure appsettings.json:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5433;Username=postgres;Password=postgres;Database=teamrotator"
+  },
+  "Slack": {
+    "WebhookUrl": "your-slack-webhook-url"
+  },
+  "HolidayApiSettings": {
+    "Url": "https://raw.githubusercontent.com/NateScarlet/holiday-cn/master"
+  }
+}
+```
+
+3. Apply database migrations:
 ```bash
 cd src/TeamRotator.Api
 dotnet ef database update
 ```
 
-4. 运行应用：
+4. Build the solution:
+```bash
+dotnet build
+```
+
+5. Run the application:
 ```bash
 dotnet run
 ```
 
-应用将在 http://localhost:5000 启动。
+The application will start at http://localhost:5000
 
-## 配置
+### 3. Development Tools
 
-主要配置文件位于 `src/TeamRotator.Api/appsettings.json`：
+#### Visual Studio Code Extensions
+- C# Dev Kit
+- .NET Core Test Explorer
+- REST Client
 
-- 数据库连接字符串
-- Slack Webhook URL
-- 节假日 API 设置
-- 日志配置
+#### API Testing
+- Swagger UI: http://localhost:5000/swagger
+- OpenAPI specification: `src/TeamRotator.Api/swagger.yaml`
 
-## API 文档
+## Database Schema
 
-API 文档可以通过以下方式访问：
+Key tables:
+- `RotationTasks`: Defines tasks that need rotation
+- `Members`: Team members information
+- `TaskAssignments`: Task assignment records
 
-- Swagger UI：运行应用后访问 http://localhost:5000/swagger
-- OpenAPI 规范：查看 `src/TeamRotator.Api/swagger.yaml`
+## Scheduled Jobs
 
-## 定时任务
+The system includes two main scheduled jobs:
 
-系统包含两个主要的定时任务：
+1. AssignmentUpdateJob
+   - Runs at: 00:00 daily
+   - Purpose: Updates task assignments based on rotation rules
 
-- AssignmentUpdateJob：每天凌晨执行，更新任务分配
-- SendToSlackJob：每天早上 8:00 执行，发送通知
+2. SendToSlackJob
+   - Runs at: 08:00 daily
+   - Purpose: Sends notifications about current assignments
 
-## 贡献
+## API Endpoints
 
-欢迎提交 Pull Request 或创建 Issue。
+### Tasks and Assignments
+- GET `/api/assignments` - Get current task assignments
+- PUT `/api/assignments/{id}` - Modify task assignment
+- POST `/api/assignments/update` - Trigger manual update
 
-## 许可证
+## Troubleshooting
 
-MIT 
+Common issues and solutions:
+
+1. Database Connection Issues
+```bash
+# Check PostgreSQL container status
+docker ps -a | grep teamrotator-postgres
+
+# View container logs
+docker logs teamrotator-postgres
+```
+
+2. Migration Issues
+```bash
+# Remove existing migrations
+dotnet ef migrations remove
+
+# Add new migration
+dotnet ef migrations add InitialCreate
+
+# Update database
+dotnet ef database update
+```
+
+3. Application Logs
+- Location: `logs/teamrotator-{date}.txt`
+- Level: Information (configurable in appsettings.json)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT License
+
+## Support
+
+For issues and feature requests, please create an issue in the GitHub repository. 
