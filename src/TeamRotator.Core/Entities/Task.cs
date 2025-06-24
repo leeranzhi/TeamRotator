@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TeamRotator.Core.Entities;
 
-public class Task
+public class RotationTask
 {
     [Key]
     public int Id { get; set; }
