@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Quartz;
 using TeamRotator.Infrastructure.Services;
 
@@ -5,18 +6,27 @@ namespace TeamRotator.Infrastructure.Jobs;
 
 public class SendToSlackJob : BaseJob
 {
-    private readonly SendToSlackService _slackService;
+    private readonly SendToSlackService _sendToSlackService;
 
     public SendToSlackJob(
-        ILogger<SendToSlackJob> logger,
-        SendToSlackService slackService)
-        : base(logger)
+        SendToSlackService sendToSlackService,
+        ILogger<SendToSlackJob> logger) : base(logger)
     {
-        _slackService = slackService;
+        _sendToSlackService = sendToSlackService;
     }
 
     protected override async Task ExecuteJob(IJobExecutionContext context)
     {
-        await _slackService.SendSlackMessage();
+        _logger.LogInformation("Starting SendToSlackJob at: {time}", DateTimeOffset.Now);
+        try
+        {
+            await _sendToSlackService.SendSlackMessage();
+            _logger.LogInformation("SendToSlackJob completed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while executing SendToSlackJob");
+            throw;
+        }
     }
 } 

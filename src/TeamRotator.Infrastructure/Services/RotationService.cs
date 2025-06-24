@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TeamRotator.Core.DTOs;
+using TeamRotator.Core.Entities;
 using TeamRotator.Core.Interfaces;
 using TeamRotator.Infrastructure.Data;
 

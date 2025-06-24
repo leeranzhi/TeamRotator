@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using TeamRotator.Core.Interfaces;
 
@@ -5,52 +7,37 @@ namespace TeamRotator.Infrastructure.Services;
 
 public class WorkingDayCheckService : IWorkingDayCheckService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WorkingDayCheckService> _logger;
+    private readonly HttpClient _httpClient;
+    private readonly string _holidayApiUrl;
 
     public WorkingDayCheckService(
-        IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        ILogger<WorkingDayCheckService> logger)
+        ILogger<WorkingDayCheckService> logger,
+        HttpClient httpClient)
     {
-        _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
+        _httpClient = httpClient;
+        _holidayApiUrl = configuration["HolidayApiSettings:Url"] ?? throw new InvalidOperationException("Holiday API URL not configured");
     }
 
     public async Task<bool> IsWorkingDayCheck(DateTime date)
     {
         try
         {
-            var client = _httpClientFactory.CreateClient();
-            var baseUrl = _configuration["HolidayApiSettings:Url"];
-            var year = date.Year;
-            var url = $"{baseUrl}/{year}.json";
-
-            var response = await client.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Failed to get holiday data from API. Status code: {StatusCode}", response.StatusCode);
-                return true;
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var holidays = JsonSerializer.Deserialize<Dictionary<string, int>>(content);
-
-            if (holidays == null)
-            {
-                _logger.LogWarning("Failed to deserialize holiday data");
-                return true;
-            }
+            var response = await _httpClient.GetStringAsync($"{_holidayApiUrl}/holidays.json");
+            var holidays = JsonSerializer.Deserialize<Dictionary<string, bool>>(response)
+                ?? throw new InvalidOperationException("Failed to deserialize holiday data");
 
             var dateString = date.ToString("yyyy-MM-dd");
             return !holidays.ContainsKey(dateString);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking working day status");
-            return true;
+            _logger.LogError(ex, "Error checking if {Date} is a working day", date);
+            throw;
         }
     }
 } 

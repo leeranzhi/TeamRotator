@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using TeamRotator.Core.DTOs;
 using TeamRotator.Core.Entities;
@@ -84,6 +85,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
                 context.SaveChanges();
                 _logger.LogInformation("Successfully updated AssignmentId {AssignmentId} after {RotationCount} rotation(s)",
                     assignment.Id, rotationCount);
+                await _slackService.SendSlackMessage();
             }
             else
             {
@@ -94,7 +96,6 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
-            await _slackService.SendFailedMessageToSlack($"Failed to update task assignment: {ex.Message}");
             throw;
         }
     }
