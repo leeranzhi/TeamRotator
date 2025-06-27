@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { Member, Task, TaskAssignment, Settings } from '../types';
 
-const api = axios.create({
-  baseURL: 'http://localhost:5001/api',
+export const api = axios.create({
+  baseURL: 'http://localhost:5003/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -79,10 +79,10 @@ export const getAssignments = async (): Promise<TaskAssignment[]> => {
 };
 
 export const updateAssignment = async (
-  id: number,
-  assignment: Partial<TaskAssignment>
+  taskId: number,
+  assignment: { memberId: number; startDate: string; endDate: string }
 ): Promise<TaskAssignment> => {
-  const response = await api.put(`/assignments/${id}`, assignment);
+  const response = await api.post(`/assignments/${taskId}/assign`, assignment);
   return response.data;
 };
 

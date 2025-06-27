@@ -12,7 +12,7 @@ using TeamRotator.Infrastructure.Data;
 namespace TeamRotator.Infrastructure.Migrations
 {
     [DbContext(typeof(RotationDbContext))]
-    [Migration("20250624042030_InitialCreate")]
+    [Migration("20250624071958_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -29,78 +29,90 @@ namespace TeamRotator.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Host")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("host");
+                        .HasColumnType("text");
 
                     b.Property<string>("SlackId")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("slack_id");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.ToTable("members", (string)null);
+                    b.ToTable("Members");
                 });
 
             modelBuilder.Entity("TeamRotator.Core.Entities.RotationTask", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("RotationRule")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("rotation_rule");
+                        .HasColumnType("text");
 
                     b.Property<string>("TaskName")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("task_name");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.ToTable("tasks", (string)null);
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("TeamRotator.Core.Entities.TaskAssignment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateOnly>("EndDate")
-                        .HasColumnType("date")
-                        .HasColumnName("end_date");
+                        .HasColumnType("date");
 
                     b.Property<int>("MemberId")
-                        .HasColumnType("integer")
-                        .HasColumnName("member_id");
+                        .HasColumnType("integer");
 
                     b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date")
-                        .HasColumnName("start_date");
+                        .HasColumnType("date");
 
                     b.Property<int>("TaskId")
-                        .HasColumnType("integer")
-                        .HasColumnName("task_id");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.ToTable("task_assignments", (string)null);
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("TaskId");
+
+                    b.ToTable("TaskAssignments");
+                });
+
+            modelBuilder.Entity("TeamRotator.Core.Entities.TaskAssignment", b =>
+                {
+                    b.HasOne("TeamRotator.Core.Entities.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TeamRotator.Core.Entities.RotationTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Task");
                 });
 #pragma warning restore 612, 618
         }

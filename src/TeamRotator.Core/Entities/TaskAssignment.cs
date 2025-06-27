@@ -10,4 +10,6 @@ public class TaskAssignment
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public int MemberId { get; set; }
+    public virtual RotationTask? Task { get; set; }
+    public virtual Member? Member { get; set; }
 } 

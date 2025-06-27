@@ -6,20 +6,20 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  TextField,
+  IconButton,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  IconButton,
-  CircularProgress,
+  TextField,
+  Typography,
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMembers, createMember, updateMember, deleteMember } from '../services/api';
+import { api } from '../services/api';
 import { Member } from '../types';
 
 const Members: React.FC = () => {
@@ -27,13 +27,14 @@ const Members: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Partial<Member> | null>(null);
 
-  const { data: members, isLoading } = useQuery({
+  const { data: members } = useQuery<Member[]>({
     queryKey: ['members'],
-    queryFn: getMembers,
+    queryFn: () => api.get<Member[]>('/members').then((res) => res.data),
   });
 
   const createMutation = useMutation({
-    mutationFn: createMember,
+    mutationFn: (member: Omit<Member, 'id'>) =>
+      api.post<Member>('/members', member).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       handleClose();
@@ -42,22 +43,15 @@ const Members: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, member }: { id: number; member: Partial<Member> }) =>
-      updateMember(id, member),
+      api.put<Member>(`/members/${id}`, member).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       handleClose();
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteMember,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['members'] });
-    },
-  });
-
   const handleOpen = (member?: Member) => {
-    setEditingMember(member || { host: '', slackId: '' });
+    setEditingMember(member || { name: '', slackId: '' });
     setOpen(true);
   };
 
@@ -70,32 +64,29 @@ const Members: React.FC = () => {
     e.preventDefault();
     if (!editingMember) return;
 
-    if ('id' in editingMember && editingMember.id) {
+    if (editingMember.id) {
       updateMutation.mutate({
         id: editingMember.id,
-        member: { host: editingMember.host, slackId: editingMember.slackId },
+        member: { name: editingMember.name, slackId: editingMember.slackId },
       });
     } else {
       createMutation.mutate({
-        host: editingMember.host!,
+        name: editingMember.name!,
         slackId: editingMember.slackId!,
       });
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box>
+    <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <h1>Team Members</h1>
-        <Button variant="contained" color="primary" onClick={() => handleOpen()}>
+        <Typography variant="h4">Team Members</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpen()}
+        >
           Add Member
         </Button>
       </Box>
@@ -104,7 +95,7 @@ const Members: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Host</TableCell>
+              <TableCell>Name</TableCell>
               <TableCell>Slack ID</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -112,20 +103,11 @@ const Members: React.FC = () => {
           <TableBody>
             {members?.map((member) => (
               <TableRow key={member.id}>
-                <TableCell>{member.host}</TableCell>
+                <TableCell>{member.name}</TableCell>
                 <TableCell>{member.slackId}</TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => handleOpen(member)}>
                     <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this member?')) {
-                        deleteMutation.mutate(member.id);
-                      }
-                    }}
-                  >
-                    <DeleteIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -135,33 +117,35 @@ const Members: React.FC = () => {
       </TableContainer>
 
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{editingMember?.id ? 'Edit Member' : 'Add Member'}</DialogTitle>
         <form onSubmit={handleSubmit}>
+          <DialogTitle>{editingMember?.id ? 'Edit Member' : 'Add Member'}</DialogTitle>
           <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Host"
-              fullWidth
-              value={editingMember?.host || ''}
-              onChange={(e) =>
-                setEditingMember((prev) => ({ ...prev!, host: e.target.value }))
-              }
-            />
-            <TextField
-              margin="dense"
-              label="Slack ID"
-              fullWidth
-              value={editingMember?.slackId || ''}
-              onChange={(e) =>
-                setEditingMember((prev) => ({ ...prev!, slackId: e.target.value }))
-              }
-            />
+            <Box sx={{ pt: 2 }}>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Name"
+                fullWidth
+                value={editingMember?.name || ''}
+                onChange={(e) =>
+                  setEditingMember((prev) => ({ ...prev!, name: e.target.value }))
+                }
+              />
+              <TextField
+                margin="dense"
+                label="Slack ID"
+                fullWidth
+                value={editingMember?.slackId || ''}
+                onChange={(e) =>
+                  setEditingMember((prev) => ({ ...prev!, slackId: e.target.value }))
+                }
+              />
+            </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleClose}>Cancel</Button>
             <Button type="submit" variant="contained" color="primary">
-              {editingMember?.id ? 'Update' : 'Add'}
+              {editingMember?.id ? 'Save' : 'Add'}
             </Button>
           </DialogActions>
         </form>

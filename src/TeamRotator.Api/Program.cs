@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using Serilog;
+using TeamRotator.Api.JsonConverters;
 using TeamRotator.Api.Middleware;
 using TeamRotator.Core.Interfaces;
 using TeamRotator.Infrastructure.Data;
@@ -18,7 +19,11 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -63,9 +68,10 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .WithExposedHeaders("Content-Disposition");
     });
 });
 
@@ -80,10 +86,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseExceptionHandling();
-app.UseAuthorization();
 
-// Use CORS before routing
+// Use CORS before routing and authorization
 app.UseCors();
+
+app.UseAuthorization();
 
 app.MapControllers();
 
@@ -94,4 +101,5 @@ using (var scope = app.Services.CreateScope())
     await context.Database.MigrateAsync();
 }
 
-app.Run(); 
+// Configure Kestrel to listen on port 5003
+app.Run("http://localhost:5003"); 

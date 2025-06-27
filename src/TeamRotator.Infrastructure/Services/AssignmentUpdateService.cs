@@ -108,14 +108,14 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         var assignment = context.TaskAssignments.FirstOrDefault(a => a.Id == id)
                         ?? throw new InvalidOperationException("Assignment not found.");
 
-        var member = context.Members.FirstOrDefault(m => m.Host == modifyAssignmentDto.Host)
-                    ?? throw new InvalidOperationException("Member not found.");
+        assignment.TaskId = modifyAssignmentDto.TaskId;
+        assignment.MemberId = modifyAssignmentDto.MemberId;
+        assignment.StartDate = modifyAssignmentDto.StartDate;
+        assignment.EndDate = modifyAssignmentDto.EndDate;
 
-        assignment.MemberId = member.Id;
         context.SaveChanges();
 
-        _logger.LogInformation("Successfully modified AssignmentId {AssignmentId} to MemberId {MemberId}",
-            id, member.Id);
+        _logger.LogInformation("Successfully modified AssignmentId {AssignmentId}", id);
         return assignment;
     }
 

@@ -9,84 +9,93 @@ namespace TeamRotator.Infrastructure.Services;
 
 public class RotationService : IRotationService
 {
-    private readonly IDbContextFactory<RotationDbContext> _contextFactory;
-    private readonly IAssignmentUpdateService _assignmentUpdateService;
     private readonly ILogger<RotationService> _logger;
+    private readonly IDbContextFactory<RotationDbContext> _contextFactory;
+    private readonly IWorkingDayCheckService _workingDayCheckService;
 
     public RotationService(
+        ILogger<RotationService> logger,
         IDbContextFactory<RotationDbContext> contextFactory,
-        IAssignmentUpdateService assignmentUpdateService,
-        ILogger<RotationService> logger)
+        IWorkingDayCheckService workingDayCheckService)
     {
-        _contextFactory = contextFactory;
-        _assignmentUpdateService = assignmentUpdateService;
         _logger = logger;
+        _contextFactory = contextFactory;
+        _workingDayCheckService = workingDayCheckService;
     }
 
     public List<TaskAssignmentDto> GetRotationList()
     {
-        _logger.LogInformation("Fetching rotation list...");
-
-        using var context = _contextFactory.CreateDbContext();
-
-        var rotationList = context.TaskAssignments
-            .Join(context.Members,
-                taskAssignment => taskAssignment.MemberId,
-                member => member.Id,
-                (taskAssignment, member) => new { taskAssignment, member })
-            .Join(context.Tasks,
-                combined => combined.taskAssignment.TaskId,
-                task => task.Id,
-                (combined, task) => new TaskAssignmentDto
-                {
-                    Id = combined.taskAssignment.Id,
-                    TaskId = combined.taskAssignment.TaskId,
-                    TaskName = task.TaskName,
-                    MemberId = combined.member.Id,
-                    Host = combined.member.Host,
-                    SlackId = combined.member.SlackId
-                })
-            .OrderBy(x => x.Id)
-            .ToList();
-
-        _logger.LogInformation("Successfully fetched {Count} task assignments", rotationList.Count);
-        return rotationList;
-    }
-
-    private bool ShouldUpdateAssignment(Core.Entities.TaskAssignment assignment)
-    {
-        DateOnly currentDate = DateOnly.FromDateTime(DateTime.Today);
-        bool shouldUpdate = !(currentDate >= assignment.StartDate && currentDate <= assignment.EndDate);
-
-        if (shouldUpdate)
+        try
         {
-            _logger.LogInformation(
-                "Assignment ID {AssignmentId} needs to be updated. Current date: {CurrentDate}, Assignment Period: {StartDate} - {EndDate}",
-                assignment.Id, currentDate, assignment.StartDate, assignment.EndDate);
-        }
+            using var context = _contextFactory.CreateDbContext();
+            var assignments = context.TaskAssignments
+                .Include(ta => ta.Task)
+                .Include(ta => ta.Member)
+                .ToList();
 
-        return shouldUpdate;
+            return assignments.Select(a => new TaskAssignmentDto
+            {
+                Id = a.Id,
+                TaskId = a.TaskId,
+                MemberId = a.MemberId,
+                Task = a.Task ?? throw new InvalidOperationException($"Task not found for assignment {a.Id}"),
+                Member = a.Member ?? throw new InvalidOperationException($"Member not found for assignment {a.Id}")
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting rotation list");
+            throw;
+        }
     }
 
     public async Task UpdateTaskAssignmentList()
     {
-        _logger.LogInformation("Starting to update all task assignments...");
-
-        using var context = _contextFactory.CreateDbContext();
-
-        foreach (var taskAssignment in context.TaskAssignments)
+        try
         {
-            if (ShouldUpdateAssignment(taskAssignment))
+            using var context = await _contextFactory.CreateDbContextAsync();
+            var tasks = await context.Tasks.ToListAsync();
+            var members = await context.Members.ToListAsync();
+
+            if (!members.Any())
             {
-                _logger.LogInformation("Updating assignment ID {AssignmentId} for Task ID {TaskId}",
-                    taskAssignment.Id, taskAssignment.TaskId);
-                await _assignmentUpdateService.UpdateTaskAssignment(taskAssignment);
+                _logger.LogWarning("No members found to assign tasks to");
+                return;
             }
-            else
+
+            foreach (var task in tasks)
             {
-                _logger.LogInformation("Skipping update for assignment ID {AssignmentId}. Not within the valid date range.",
-                    taskAssignment.Id);
+                var currentAssignment = await context.TaskAssignments
+                    .Include(ta => ta.Member)
+                    .FirstOrDefaultAsync(ta => ta.TaskId == task.Id);
+
+                if (currentAssignment == null)
+                {
+                    // If no assignment exists, create one with the first member
+                    var firstMember = members.First();
+                    context.TaskAssignments.Add(new TaskAssignment
+                    {
+                        TaskId = task.Id,
+                        MemberId = firstMember.Id
+                    });
+                }
+                else
+                {
+                    // Get the next member in rotation
+                    var currentMemberIndex = members.FindIndex(m => m.Id == currentAssignment.MemberId);
+                    var nextMemberIndex = (currentMemberIndex + 1) % members.Count;
+                    var nextMember = members[nextMemberIndex];
+
+                    currentAssignment.MemberId = nextMember.Id;
+                }
             }
+
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating task assignment list");
+            throw;
         }
     }
 } 

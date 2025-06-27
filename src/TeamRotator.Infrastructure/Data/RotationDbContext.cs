@@ -29,33 +29,34 @@ public class RotationDbContext : DbContext
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TaskAssignment>(entity =>
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Member>(entity =>
         {
-            entity.ToTable("task_assignments"); 
-            
-            entity.Property(e => e.TaskId).HasColumnName("task_id");
-            entity.Property(e => e.StartDate).HasColumnName("start_date");
-            entity.Property(e => e.EndDate).HasColumnName("end_date");
-            entity.Property(e => e.MemberId).HasColumnName("member_id");
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired();
+            entity.Property(e => e.SlackId).IsRequired();
         });
 
         modelBuilder.Entity<RotationTask>(entity =>
         {
-            entity.ToTable("tasks");
-
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TaskName).HasColumnName("task_name");
-            entity.Property(e => e.RotationRule).HasColumnName("rotation_rule");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired();
+            entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.RotationRule).IsRequired();
         });
-        
-        modelBuilder.Entity<Member>(entity =>
-        {
-            entity.ToTable("members");
 
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Host).HasColumnName("host");
-            entity.Property(e => e.SlackId).HasColumnName("slack_id");
+        modelBuilder.Entity<TaskAssignment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Task)
+                .WithMany()
+                .HasForeignKey(e => e.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Member)
+                .WithMany()
+                .HasForeignKey(e => e.MemberId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 } 

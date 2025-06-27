@@ -1,12 +1,13 @@
 export interface Member {
   id: number;
-  host: string;
+  name: string;
   slackId: string;
 }
 
 export interface Task {
   id: number;
-  taskName: string;
+  name: string;
+  description: string;
   rotationRule: string;
 }
 
@@ -14,6 +15,8 @@ export interface TaskAssignment {
   id: number;
   taskId: number;
   memberId: number;
+  startDate: string;
+  endDate: string;
   task: Task;
   member: Member;
 }
