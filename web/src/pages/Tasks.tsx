@@ -22,113 +22,31 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, AssignmentInd as AssignIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format } from 'date-fns';
-import { api } from '../services/api';
-import { Task, Member } from '../types';
-
-interface AssignDialogProps {
-  open: boolean;
-  onClose: () => void;
-  task: Task;
-}
-
-const AssignDialog: React.FC<AssignDialogProps> = ({ open, onClose, task }) => {
-  const queryClient = useQueryClient();
-  const [selectedMember, setSelectedMember] = useState<string>('');
-  const [startDate, setStartDate] = useState<Date | null>(new Date());
-  const [endDate, setEndDate] = useState<Date | null>(new Date());
-
-  const { data: members } = useQuery<Member[]>({
-    queryKey: ['members'],
-    queryFn: () => api.get<Member[]>('/members').then((res) => res.data),
-  });
-
-  const assignMutation = useMutation({
-    mutationFn: (data: { taskId: number; memberId: number; startDate: string; endDate: string }) =>
-      api.post('/assignments', data).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignments'] });
-      onClose();
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMember || !startDate || !endDate) return;
-
-    assignMutation.mutate({
-      taskId: task.id,
-      memberId: parseInt(selectedMember),
-      startDate: format(startDate, 'yyyy-MM-dd'),
-      endDate: format(endDate, 'yyyy-MM-dd'),
-    });
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Assign Task: {task.name}</DialogTitle>
-      <form onSubmit={handleSubmit}>
-        <DialogContent>
-          <Stack spacing={3}>
-            <FormControl fullWidth>
-              <InputLabel>Member</InputLabel>
-              <Select
-                value={selectedMember}
-                onChange={(e) => setSelectedMember(e.target.value)}
-                label="Member"
-              >
-                {members?.map((member) => (
-                  <MenuItem key={member.id} value={member.id}>
-                    {member.name} ({member.slackId})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Start Date"
-                value={startDate}
-                onChange={(date) => setStartDate(date)}
-              />
-              <DatePicker
-                label="End Date"
-                value={endDate}
-                onChange={(date) => setEndDate(date)}
-              />
-            </LocalizationProvider>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained" color="primary">
-            Assign
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
-  );
-};
+import { getTasks, createTask, updateTask, getMembers, assignTask, updateAssignment } from '../services/api';
+import { Task, Member, ModifyAssignment } from '../types';
 
 const Tasks: React.FC = () => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Partial<Task> | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<Partial<Task> | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<number>(-1);
 
   const { data: tasks } = useQuery<Task[]>({
     queryKey: ['tasks'],
-    queryFn: () => api.get<Task[]>('/tasks').then((res) => res.data),
+    queryFn: getTasks,
+  });
+
+  const { data: members } = useQuery<Member[]>({
+    queryKey: ['members'],
+    queryFn: getMembers,
   });
 
   const createMutation = useMutation({
-    mutationFn: (task: Omit<Task, 'id'>) =>
-      api.post<Task>('/tasks', task).then((res) => res.data),
+    mutationFn: (task: Omit<Task, 'id'>) => createTask(task),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       handleClose();
@@ -137,15 +55,33 @@ const Tasks: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, task }: { id: number; task: Partial<Task> }) =>
-      api.put<Task>(`/tasks/${id}`, task).then((res) => res.data),
+      updateTask(id, task),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       handleClose();
     },
   });
 
+  const assignMutation = useMutation({
+    mutationFn: ({ taskId, memberId }: { taskId: number; memberId: number }) =>
+      assignTask(taskId, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      handleAssignDialogClose();
+    },
+  });
+
+  const updateAssignmentMutation = useMutation({
+    mutationFn: ({ id, assignment }: { id: number; assignment: ModifyAssignment }) =>
+      updateAssignment(id, assignment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      handleAssignDialogClose();
+    },
+  });
+
   const handleOpen = (task?: Task) => {
-    setEditingTask(task || { name: '', description: '', rotationRule: '' });
+    setEditingTask(task || { taskName: '', rotationRule: '' });
     setOpen(true);
   };
 
@@ -154,9 +90,16 @@ const Tasks: React.FC = () => {
     setOpen(false);
   };
 
-  const handleAssign = (task: Task) => {
-    setSelectedTask(task);
+  const handleAssignDialogOpen = (taskId: number) => {
+    setSelectedTaskId(taskId);
+    setSelectedMemberId(-1);
     setAssignDialogOpen(true);
+  };
+
+  const handleAssignDialogClose = () => {
+    setSelectedTaskId(null);
+    setSelectedMemberId(-1);
+    setAssignDialogOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -166,14 +109,25 @@ const Tasks: React.FC = () => {
     if (editingTask.id) {
       updateMutation.mutate({
         id: editingTask.id,
-        task: { name: editingTask.name, description: editingTask.description, rotationRule: editingTask.rotationRule },
+        task: { taskName: editingTask.taskName, rotationRule: editingTask.rotationRule },
       });
     } else {
       createMutation.mutate({
-        name: editingTask.name!,
-        description: editingTask.description!,
+        taskName: editingTask.taskName!,
         rotationRule: editingTask.rotationRule!,
       });
+    }
+  };
+
+  const handleAssign = () => {
+    if (selectedTaskId && selectedMemberId >= 0) {
+      const selectedMember = members?.find(m => m.id === selectedMemberId);
+      if (selectedMember) {
+        updateAssignmentMutation.mutate({
+          id: selectedTaskId,
+          assignment: { host: selectedMember.host }
+        });
+      }
     }
   };
 
@@ -196,7 +150,6 @@ const Tasks: React.FC = () => {
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
-              <TableCell>Description</TableCell>
               <TableCell>Rotation Rule</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -204,16 +157,17 @@ const Tasks: React.FC = () => {
           <TableBody>
             {tasks?.map((task) => (
               <TableRow key={task.id}>
-                <TableCell>{task.name}</TableCell>
-                <TableCell>{task.description}</TableCell>
+                <TableCell>{task.taskName}</TableCell>
                 <TableCell>{task.rotationRule}</TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => handleAssign(task)} color="primary">
-                    <AssignmentIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleOpen(task)}>
-                    <EditIcon />
-                  </IconButton>
+                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <IconButton onClick={() => handleOpen(task)}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton onClick={() => handleAssignDialogOpen(task.id)}>
+                      <AssignIcon />
+                    </IconButton>
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
@@ -229,31 +183,27 @@ const Tasks: React.FC = () => {
               <TextField
                 autoFocus
                 margin="dense"
-                label="Task Name"
+                label="Name"
                 fullWidth
-                value={editingTask?.name || ''}
+                value={editingTask?.taskName || ''}
                 onChange={(e) =>
-                  setEditingTask((prev) => ({ ...prev!, name: e.target.value }))
+                  setEditingTask((prev) => ({ ...prev!, taskName: e.target.value }))
                 }
               />
-              <TextField
-                margin="dense"
-                label="Description"
-                fullWidth
-                value={editingTask?.description || ''}
-                onChange={(e) =>
-                  setEditingTask((prev) => ({ ...prev!, description: e.target.value }))
-                }
-              />
-              <TextField
-                margin="dense"
-                label="Rotation Rule"
-                fullWidth
-                value={editingTask?.rotationRule || ''}
-                onChange={(e) =>
-                  setEditingTask((prev) => ({ ...prev!, rotationRule: e.target.value }))
-                }
-              />
+              <FormControl fullWidth margin="dense">
+                <InputLabel>Rotation Rule</InputLabel>
+                <Select
+                  value={editingTask?.rotationRule || ''}
+                  onChange={(e) =>
+                    setEditingTask((prev) => ({ ...prev!, rotationRule: e.target.value }))
+                  }
+                  label="Rotation Rule"
+                >
+                  <MenuItem value="daily">Daily</MenuItem>
+                  <MenuItem value="weekly_monday">Weekly (Monday)</MenuItem>
+                  <MenuItem value="biweekly_monday">Biweekly (Monday)</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
           </DialogContent>
           <DialogActions>
@@ -265,16 +215,39 @@ const Tasks: React.FC = () => {
         </form>
       </Dialog>
 
-      {selectedTask && (
-        <AssignDialog
-          open={assignDialogOpen}
-          onClose={() => {
-            setAssignDialogOpen(false);
-            setSelectedTask(null);
-          }}
-          task={selectedTask}
-        />
-      )}
+      <Dialog open={assignDialogOpen} onClose={handleAssignDialogClose}>
+        <DialogTitle>Assign Task</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <FormControl fullWidth margin="dense">
+              <InputLabel>Member</InputLabel>
+              <Select
+                value={selectedMemberId}
+                onChange={(e) => setSelectedMemberId(Number(e.target.value))}
+                label="Member"
+              >
+                <MenuItem value={-1} disabled>Select a member</MenuItem>
+                {members?.map((member) => (
+                  <MenuItem key={member.id} value={member.id}>
+                    {member.host}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAssignDialogClose}>Cancel</Button>
+          <Button
+            onClick={handleAssign}
+            variant="contained"
+            color="primary"
+            disabled={selectedMemberId < 0}
+          >
+            Assign
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

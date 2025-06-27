@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Member, Task, TaskAssignment, Settings } from '../types';
+import { Member, Task, TaskAssignment, Settings, ModifyAssignment } from '../types';
 
 export const api = axios.create({
   baseURL: 'http://localhost:5003/api',
@@ -78,12 +78,21 @@ export const getAssignments = async (): Promise<TaskAssignment[]> => {
   return response.data;
 };
 
-export const updateAssignment = async (
-  taskId: number,
-  assignment: { memberId: number; startDate: string; endDate: string }
-): Promise<TaskAssignment> => {
-  const response = await api.post(`/assignments/${taskId}/assign`, assignment);
+export const assignTask = async (taskId: number, memberId: number): Promise<TaskAssignment> => {
+  const response = await api.post('/assignments/assign', { taskId, memberId });
   return response.data;
+};
+
+export const updateAssignment = async (
+  id: number,
+  assignment: ModifyAssignment
+): Promise<TaskAssignment> => {
+  const response = await api.put(`/assignments/${id}`, { host: assignment.host });
+  return response.data;
+};
+
+export const triggerRotationUpdate = async (): Promise<void> => {
+  await api.post('/assignments/update');
 };
 
 // Settings

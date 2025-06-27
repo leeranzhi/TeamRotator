@@ -1,27 +1,30 @@
 export interface Member {
   id: number;
-  name: string;
+  host: string;
   slackId: string;
 }
 
 export interface Task {
   id: number;
-  name: string;
-  description: string;
+  taskName: string;
   rotationRule: string;
 }
 
 export interface TaskAssignment {
   id: number;
   taskId: number;
+  taskName: string;
   memberId: number;
-  startDate: string;
-  endDate: string;
-  task: Task;
-  member: Member;
+  host: string;
+  slackId: string;
+}
+
+export interface ModifyAssignment {
+  host: string;
 }
 
 export interface Settings {
   id: number;
-  slackWebhookUrl: string;
+  webhookUrl: string;
+  personalWebhookUrl: string;
 } 
