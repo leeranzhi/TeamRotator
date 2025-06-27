@@ -35,24 +35,32 @@ public class RotationDbContext : DbContext
         modelBuilder.Entity<Member>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Host).IsRequired();
+            entity.Property(e => e.SlackId).IsRequired();
         });
 
         modelBuilder.Entity<Task>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.TaskName).IsRequired();
+            entity.Property(e => e.RotationRule).IsRequired();
         });
 
         modelBuilder.Entity<TaskAssignment>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasOne<Task>()
+            
+            entity.HasOne(e => e.Task)
                 .WithMany()
                 .HasForeignKey(e => e.TaskId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne<Member>()
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+            
+            entity.HasOne(e => e.Member)
                 .WithMany()
                 .HasForeignKey(e => e.MemberId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
         });
     }
 } 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TeamRotator.Infrastructure.Data;
@@ -11,9 +12,11 @@ using TeamRotator.Infrastructure.Data;
 namespace TeamRotator.Infrastructure.Migrations
 {
     [DbContext(typeof(RotationDbContext))]
-    partial class RotationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250627040436_FixEntityConfigurations")]
+    partial class FixEntityConfigurations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
