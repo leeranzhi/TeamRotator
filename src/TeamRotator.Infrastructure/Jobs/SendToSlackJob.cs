@@ -1,31 +1,35 @@
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Serilog.Context;
 using TeamRotator.Infrastructure.Services;
 
 namespace TeamRotator.Infrastructure.Jobs;
 
-public class SendToSlackJob : BaseJob
+public class SendToSlackJob : IJob
 {
     private readonly SendToSlackService _sendToSlackService;
+    private readonly ILogger<SendToSlackJob> _logger;
 
-    public SendToSlackJob(
-        SendToSlackService sendToSlackService,
-        ILogger<SendToSlackJob> logger) : base(logger)
+    public SendToSlackJob(SendToSlackService sendToSlackService, ILogger<SendToSlackJob> logger)
     {
         _sendToSlackService = sendToSlackService;
+        _logger = logger;
     }
 
-    protected override async Task ExecuteJob(IJobExecutionContext context)
+    public async Task Execute(IJobExecutionContext context)
     {
-        _logger.LogInformation("Starting SendToSlackJob at: {time}", DateTimeOffset.Now);
+        using var correlationIdScope = LogContext.PushProperty("CorrelationId", Guid.NewGuid());
+        _logger.LogInformation("Executing SendToSlackJob...");
+
         try
         {
             await _sendToSlackService.SendSlackMessage();
-            _logger.LogInformation("SendToSlackJob completed successfully");
+
+            _logger.LogInformation("Successfully sent message to Slack.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while executing SendToSlackJob");
+            _logger.LogError(ex, "Error occurred while sending message to Slack.");
             throw;
         }
     }

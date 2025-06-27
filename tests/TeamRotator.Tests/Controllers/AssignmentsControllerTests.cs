@@ -4,10 +4,11 @@ using TeamRotator.Api.Controllers;
 using TeamRotator.Core.DTOs;
 using TeamRotator.Core.Entities;
 using TeamRotator.Core.Interfaces;
+using Xunit;
 
 namespace TeamRotator.Tests.Controllers;
 
-public class AssignmentsControllerTests : TestBase
+public class AssignmentsControllerTests
 {
     private readonly Mock<IRotationService> _rotationServiceMock;
     private readonly Mock<IAssignmentUpdateService> _assignmentUpdateServiceMock;
@@ -18,7 +19,6 @@ public class AssignmentsControllerTests : TestBase
         _rotationServiceMock = new Mock<IRotationService>();
         _assignmentUpdateServiceMock = new Mock<IAssignmentUpdateService>();
         _controller = new AssignmentsController(
-            CreateLogger<AssignmentsController>().Object,
             _rotationServiceMock.Object,
             _assignmentUpdateServiceMock.Object);
     }
@@ -58,7 +58,7 @@ public class AssignmentsControllerTests : TestBase
     }
 
     [Fact]
-    public void ModifyAssignment_ReturnsOkResult()
+    public void UpdateRotationList_ReturnsOkResult()
     {
         // Arrange
         var dto = new ModifyAssignmentDto { Host = "user1" };
@@ -67,7 +67,7 @@ public class AssignmentsControllerTests : TestBase
             .Returns(assignment);
 
         // Act
-        var result = _controller.ModifyAssignment(1, dto);
+        var result = _controller.UpdateRotationList(1, dto);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -76,7 +76,7 @@ public class AssignmentsControllerTests : TestBase
     }
 
     [Fact]
-    public void ModifyAssignment_HandlesException()
+    public void UpdateRotationList_HandlesException()
     {
         // Arrange
         var dto = new ModifyAssignmentDto { Host = "user1" };
@@ -84,7 +84,7 @@ public class AssignmentsControllerTests : TestBase
             .Throws(new InvalidOperationException("Test error"));
 
         // Act
-        var result = _controller.ModifyAssignment(1, dto);
+        var result = _controller.UpdateRotationList(1, dto);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);

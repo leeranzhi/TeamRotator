@@ -7,18 +7,18 @@ using TeamRotator.Core.Entities;
 
 namespace TeamRotator.Api.Controllers;
 
-public class AssignmentsController : BaseController
+[ApiController]
+[Route("assignments")]
+public class AssignmentsController : ControllerBase
 {
     private readonly IRotationService _rotationService;
     private readonly IAssignmentUpdateService _assignmentUpdateService;
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
 
     public AssignmentsController(
-        ILogger<AssignmentsController> logger,
         IRotationService rotationService,
         IAssignmentUpdateService assignmentUpdateService,
         IDbContextFactory<RotationDbContext> contextFactory)
-        : base(logger)
     {
         _rotationService = rotationService;
         _assignmentUpdateService = assignmentUpdateService;
@@ -26,81 +26,17 @@ public class AssignmentsController : BaseController
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<TaskAssignmentDto>>> GetRotationList()
+    public ActionResult<List<TaskAssignmentDto>> GetRotationList()
     {
-        try
-        {
-            using var context = await _contextFactory.CreateDbContextAsync();
-            var assignments = await context.TaskAssignments
-                .Include(ta => ta.Task)
-                .Include(ta => ta.Member)
-                .ToListAsync();
-
-            var assignmentDtos = assignments.Select(a => new TaskAssignmentDto
-            {
-                Id = a.Id,
-                TaskId = a.TaskId,
-                MemberId = a.MemberId,
-                StartDate = a.StartDate,
-                EndDate = a.EndDate,
-                Task = a.Task ?? throw new InvalidOperationException($"Task not found for assignment {a.Id}"),
-                Member = a.Member ?? throw new InvalidOperationException($"Member not found for assignment {a.Id}")
-            }).ToList();
-
-            return Ok(assignmentDtos);
-        }
-        catch (Exception ex)
-        {
-            return HandleException<List<TaskAssignmentDto>>(ex);
-        }
+        var rotationList = _rotationService.GetRotationList();
+        return Ok(rotationList);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<TaskAssignmentDto>> ModifyAssignment(int id, [FromBody] ModifyAssignmentDto modifyAssignmentDto)
+    public ActionResult<TaskAssignment> UpdateRotationList(int id, [FromBody] ModifyAssignmentDto modifyAssignmentDto)
     {
-        try
-        {
-            using var context = await _contextFactory.CreateDbContextAsync();
-            var assignment = await context.TaskAssignments.FindAsync(id);
-            
-            if (assignment == null)
-            {
-                return NotFound($"Assignment with id {id} not found");
-            }
-
-            assignment.TaskId = modifyAssignmentDto.TaskId;
-            assignment.MemberId = modifyAssignmentDto.MemberId;
-            assignment.StartDate = modifyAssignmentDto.StartDate;
-            assignment.EndDate = modifyAssignmentDto.EndDate;
-
-            await context.SaveChangesAsync();
-            
-            var updatedAssignment = await context.TaskAssignments
-                .Include(ta => ta.Task)
-                .Include(ta => ta.Member)
-                .FirstOrDefaultAsync(ta => ta.Id == id);
-
-            if (updatedAssignment == null)
-            {
-                return NotFound("Updated assignment not found");
-            }
-
-            var assignmentDto = new TaskAssignmentDto
-            {
-                Id = updatedAssignment.Id,
-                TaskId = updatedAssignment.TaskId,
-                MemberId = updatedAssignment.MemberId,
-                StartDate = updatedAssignment.StartDate,
-                EndDate = updatedAssignment.EndDate,
-                Task = updatedAssignment.Task ?? throw new InvalidOperationException($"Task not found for assignment {updatedAssignment.Id}"),
-                Member = updatedAssignment.Member ?? throw new InvalidOperationException($"Member not found for assignment {updatedAssignment.Id}")
-            };
-            return Ok(assignmentDto);
-        }
-        catch (Exception ex)
-        {
-            return HandleException<TaskAssignmentDto>(ex);
-        }
+        var updatedAssignment = _assignmentUpdateService.ModifyTaskAssignment(id, modifyAssignmentDto);
+        return Ok(updatedAssignment);
     }
 
     [HttpPost]

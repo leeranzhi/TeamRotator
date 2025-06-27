@@ -4,98 +4,99 @@ using TeamRotator.Core.DTOs;
 using TeamRotator.Core.Entities;
 using TeamRotator.Core.Interfaces;
 using TeamRotator.Infrastructure.Data;
+using Task = System.Threading.Tasks.Task;
+using RotationTask = TeamRotator.Core.Entities.Task;
 
 namespace TeamRotator.Infrastructure.Services;
 
 public class RotationService : IRotationService
 {
-    private readonly ILogger<RotationService> _logger;
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
-    private readonly IWorkingDayCheckService _workingDayCheckService;
+    private readonly IAssignmentUpdateService _assignmentUpdateService;
+    private readonly ILogger<RotationService> _logger;
 
     public RotationService(
-        ILogger<RotationService> logger,
         IDbContextFactory<RotationDbContext> contextFactory,
-        IWorkingDayCheckService workingDayCheckService)
+        IAssignmentUpdateService assignmentUpdateService,
+        ILogger<RotationService> logger)
     {
-        _logger = logger;
         _contextFactory = contextFactory;
-        _workingDayCheckService = workingDayCheckService;
+        _assignmentUpdateService = assignmentUpdateService;
+        _logger = logger;
     }
 
     public List<TaskAssignmentDto> GetRotationList()
     {
-        try
-        {
-            using var context = _contextFactory.CreateDbContext();
-            var assignments = context.TaskAssignments
-                .Include(ta => ta.Task)
-                .Include(ta => ta.Member)
-                .ToList();
+        _logger.LogInformation("Fetching rotation list...");
 
-            return assignments.Select(a => new TaskAssignmentDto
+        using var context = _contextFactory.CreateDbContext();
+
+        var rotationList = context.TaskAssignments
+            .Join(context.Members,
+                taskAssignment => taskAssignment.MemberId,
+                member => member.Id,
+                (taskAssignment, member) => new { taskAssignment, member })
+            .Join(context.Tasks,
+                combined => combined.taskAssignment.TaskId,
+                task => task.Id,
+                (combined, task) => new
+                {
+                    combined.taskAssignment.Id,
+                    combined.taskAssignment.TaskId,
+                    TaskName = task.TaskName,
+                    MemberId = combined.member.Id,
+                    Host = combined.member.Host,
+                    SlackId = combined.member.SlackId
+                })
+            .OrderBy(x => x.Id)
+            .AsEnumerable()
+            .Select(x => new TaskAssignmentDto
             {
-                Id = a.Id,
-                TaskId = a.TaskId,
-                MemberId = a.MemberId,
-                Task = a.Task ?? throw new InvalidOperationException($"Task not found for assignment {a.Id}"),
-                Member = a.Member ?? throw new InvalidOperationException($"Member not found for assignment {a.Id}")
-            }).ToList();
-        }
-        catch (Exception ex)
+                Id = x.Id,
+                TaskId = x.TaskId,
+                TaskName = x.TaskName ?? throw new InvalidOperationException($"Task name is null for task {x.TaskId}"),
+                MemberId = x.MemberId,
+                Host = x.Host ?? throw new InvalidOperationException($"Host is null for member {x.MemberId}"),
+                SlackId = x.SlackId ?? throw new InvalidOperationException($"SlackId is null for member {x.MemberId}")
+            })
+            .ToList();
+
+        _logger.LogInformation("Successfully fetched {RotationListCount} task assignments.", rotationList.Count);
+
+        return rotationList;
+    }
+
+    private bool ShouldUpdateAssignment(TaskAssignment assignment)
+    {
+        DateOnly currentDate = DateOnly.FromDateTime(DateTime.Today);
+        bool shouldUpdate = !(currentDate >= assignment.StartDate && currentDate <= assignment.EndDate);
+
+        if (shouldUpdate)
         {
-            _logger.LogError(ex, "Error getting rotation list");
-            throw;
+            _logger.LogInformation("Assignment ID {AssignmentId} needs to be updated. Current date: {CurrentDate}, Assignment Period: {StartDate} - {EndDate}",
+                assignment.Id, currentDate, assignment.StartDate, assignment.EndDate);
         }
+
+        return shouldUpdate;
     }
 
     public async Task UpdateTaskAssignmentList()
     {
-        try
+        _logger.LogInformation("Starting updating all task assignment...");
+
+        using var context = _contextFactory.CreateDbContext();
+
+        foreach (var taskAssignment in context.TaskAssignments)
         {
-            using var context = await _contextFactory.CreateDbContextAsync();
-            var tasks = await context.Tasks.ToListAsync();
-            var members = await context.Members.ToListAsync();
-
-            if (!members.Any())
+            if (ShouldUpdateAssignment(taskAssignment))
             {
-                _logger.LogWarning("No members found to assign tasks to");
-                return;
+                _logger.LogInformation("Updating assignment ID {AssignmentId} for Task ID {TaskId}", taskAssignment.Id, taskAssignment.TaskId);
+                await _assignmentUpdateService.UpdateTaskAssignment(taskAssignment);
             }
-
-            foreach (var task in tasks)
+            else
             {
-                var currentAssignment = await context.TaskAssignments
-                    .Include(ta => ta.Member)
-                    .FirstOrDefaultAsync(ta => ta.TaskId == task.Id);
-
-                if (currentAssignment == null)
-                {
-                    // If no assignment exists, create one with the first member
-                    var firstMember = members.First();
-                    context.TaskAssignments.Add(new TaskAssignment
-                    {
-                        TaskId = task.Id,
-                        MemberId = firstMember.Id
-                    });
-                }
-                else
-                {
-                    // Get the next member in rotation
-                    var currentMemberIndex = members.FindIndex(m => m.Id == currentAssignment.MemberId);
-                    var nextMemberIndex = (currentMemberIndex + 1) % members.Count;
-                    var nextMember = members[nextMemberIndex];
-
-                    currentAssignment.MemberId = nextMember.Id;
-                }
+                _logger.LogInformation("Skipping update for assignment ID {AssignmentId}. Not within the valid date range.", taskAssignment.Id);
             }
-
-            await context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating task assignment list");
-            throw;
         }
     }
 } 

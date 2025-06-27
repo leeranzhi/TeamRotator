@@ -5,6 +5,7 @@ using TeamRotator.Core.DTOs;
 using TeamRotator.Core.Entities;
 using TeamRotator.Core.Interfaces;
 using TeamRotator.Infrastructure.Data;
+using Task = System.Threading.Tasks.Task;
 
 namespace TeamRotator.Infrastructure.Services;
 
@@ -85,7 +86,6 @@ public class AssignmentUpdateService : IAssignmentUpdateService
                 context.SaveChanges();
                 _logger.LogInformation("Successfully updated AssignmentId {AssignmentId} after {RotationCount} rotation(s)",
                     assignment.Id, rotationCount);
-                await _slackService.SendSlackMessage();
             }
             else
             {
@@ -96,6 +96,7 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating task assignment for AssignmentId {AssignmentId}", assignment.Id);
+            await _slackService.SendFailedMessageToSlack($"Failed to update task assignment: {ex.Message}");
             throw;
         }
     }
@@ -108,14 +109,13 @@ public class AssignmentUpdateService : IAssignmentUpdateService
         var assignment = context.TaskAssignments.FirstOrDefault(a => a.Id == id)
                         ?? throw new InvalidOperationException("Assignment not found.");
 
-        assignment.TaskId = modifyAssignmentDto.TaskId;
-        assignment.MemberId = modifyAssignmentDto.MemberId;
-        assignment.StartDate = modifyAssignmentDto.StartDate;
-        assignment.EndDate = modifyAssignmentDto.EndDate;
+        var member = context.Members.FirstOrDefault(m => m.Host == modifyAssignmentDto.Host)
+                     ?? throw new InvalidOperationException("Member not found.");
 
+        assignment.MemberId = member.Id;
         context.SaveChanges();
 
-        _logger.LogInformation("Successfully modified AssignmentId {AssignmentId}", id);
+        _logger.LogInformation("Successfully modified AssignmentId {AssignmentId} to MemberId {MemberId}", id, member.Id);
         return assignment;
     }
 
@@ -146,12 +146,18 @@ public class AssignmentUpdateService : IAssignmentUpdateService
        
         DateOnly firstTargetDayAfter = GetNextDayAfterTargetDay(fromDate, targetDay);
         
-        return frequency switch
+        switch (frequency)
         {
-            "weekly" => (firstTargetDayAfter, firstTargetDayAfter.AddDays(6)),
-            "biweekly" => (firstTargetDayAfter, firstTargetDayAfter.AddDays(13)),
-            _ => throw new InvalidOperationException($"Unsupported frequency: {frequency}")
-        };
+            case "weekly":
+                return (firstTargetDayAfter, firstTargetDayAfter.AddDays(6));
+
+            case "biweekly":
+                var secondTargetDay = GetNextDayAfterTargetDay(firstTargetDayAfter, targetDay);
+                return (secondTargetDay, secondTargetDay.AddDays(13));
+
+            default:
+                throw new InvalidOperationException($"Unsupported frequency: {frequency}");
+        }
     }
     
     private static DateOnly GetNextDayAfterTargetDay(DateOnly start, DayOfWeek targetDay)

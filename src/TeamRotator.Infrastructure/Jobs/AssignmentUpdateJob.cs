@@ -1,40 +1,36 @@
 using Microsoft.Extensions.Logging;
 using Quartz;
-using TeamRotator.Core.Entities;
+using Serilog.Context;
 using TeamRotator.Core.Interfaces;
+using Task = System.Threading.Tasks.Task;
 
 namespace TeamRotator.Infrastructure.Jobs;
 
-public class AssignmentUpdateJob : BaseJob
+public class AssignmentUpdateJob : IJob
 {
-    private readonly IAssignmentUpdateService _assignmentUpdateService;
+    private readonly IRotationService _rotationService;
+    private readonly ILogger<AssignmentUpdateJob> _logger;
 
-    public AssignmentUpdateJob(
-        IAssignmentUpdateService assignmentUpdateService,
-        ILogger<AssignmentUpdateJob> logger) : base(logger)
+    public AssignmentUpdateJob(IRotationService rotationService, ILogger<AssignmentUpdateJob> logger)
     {
-        _assignmentUpdateService = assignmentUpdateService;
+        _rotationService = rotationService;
+        _logger = logger;
     }
 
-    protected override async Task ExecuteJob(IJobExecutionContext context)
+    public async Task Execute(IJobExecutionContext context)
     {
-        _logger.LogInformation("Starting AssignmentUpdateJob at: {time}", DateTimeOffset.Now);
+        using var correlationIdScope = LogContext.PushProperty("CorrelationId", Guid.NewGuid());
+        _logger.LogInformation("Executing quartz AssignmentUpdateJob...");
+
         try
         {
-            await _assignmentUpdateService.UpdateTaskAssignment(new TaskAssignment
-            {
-                Id = 1, // This is just a placeholder, the actual implementation should get the current assignment
-                TaskId = 1,
-                MemberId = 1,
-                StartDate = DateOnly.FromDateTime(DateTime.Today),
-                EndDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7))
-            });
-            
-            _logger.LogInformation("AssignmentUpdateJob completed successfully");
+            await Task.Run(() => _rotationService.UpdateTaskAssignmentList());
+             
+            _logger.LogInformation("Successfully auto updated task assignments.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while executing AssignmentUpdateJob");
+            _logger.LogError(ex, "Error occurred while auto updating task assignments.");
             throw;
         }
     }

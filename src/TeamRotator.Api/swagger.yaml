@@ -20,7 +20,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TaskAssignment'
+                  $ref: '#/components/schemas/TaskAssignmentDto'
         '500':
           description: Internal server error
 
@@ -61,24 +61,52 @@ paths:
 
 components:
   schemas:
-    TaskAssignment:
+    TaskAssignmentDto:
       type: object
       properties:
         id:
           type: integer
           description: Identifier for the task assignment
+        taskId:
+          type: integer
+          description: ID of the task
         taskName:
           type: string
           description: Name of the task
         memberId:
           type: integer
           description: ID of the member
-        periodType:
+        host:
           type: string
-          description: Type of period for the assignment
+          description: Host name of the member
+        slackId:
+          type: string
+          description: Slack ID of the member
+    TaskAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifier for the task assignment
+        taskId:
+          type: integer
+          description: ID of the task
+        memberId:
+          type: integer
+          description: ID of the member
+        startDate:
+          type: string
+          format: date
+          description: Start date of the assignment
+        endDate:
+          type: string
+          format: date
+          description: End date of the assignment
     ModifyAssignmentDto:
       type: object
+      required:
+        - host
       properties:
         host:
           type: string
-          description: New host to be assigned 
+          description: Host name of the member to be assigned 

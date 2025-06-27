@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TeamRotator.Core.Entities;
+using Task = TeamRotator.Core.Entities.Task;
 
 namespace TeamRotator.Infrastructure.Data;
 
@@ -9,7 +10,7 @@ public class RotationDbContext : DbContext
     private readonly ILogger<RotationDbContext>? _logger;
 
     public DbSet<TaskAssignment> TaskAssignments { get; set; } = null!;
-    public DbSet<RotationTask> Tasks { get; set; } = null!;
+    public DbSet<Task> Tasks { get; set; } = null!;
     public DbSet<Member> Members { get; set; } = null!;
 
     public RotationDbContext(DbContextOptions<RotationDbContext> options, ILogger<RotationDbContext>? logger = null) 
@@ -34,26 +35,21 @@ public class RotationDbContext : DbContext
         modelBuilder.Entity<Member>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired();
-            entity.Property(e => e.SlackId).IsRequired();
         });
 
-        modelBuilder.Entity<RotationTask>(entity =>
+        modelBuilder.Entity<Task>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired();
-            entity.Property(e => e.Description).IsRequired();
-            entity.Property(e => e.RotationRule).IsRequired();
         });
 
         modelBuilder.Entity<TaskAssignment>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.Task)
+            entity.HasOne<Task>()
                 .WithMany()
                 .HasForeignKey(e => e.TaskId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(e => e.Member)
+            entity.HasOne<Member>()
                 .WithMany()
                 .HasForeignKey(e => e.MemberId)
                 .OnDelete(DeleteBehavior.Cascade);
