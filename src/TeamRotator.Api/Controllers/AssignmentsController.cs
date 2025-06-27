@@ -8,17 +8,18 @@ using TeamRotator.Core.Entities;
 namespace TeamRotator.Api.Controllers;
 
 [ApiController]
-[Route("assignments")]
-public class AssignmentsController : ControllerBase
+public class AssignmentsController : BaseController
 {
     private readonly IRotationService _rotationService;
     private readonly IAssignmentUpdateService _assignmentUpdateService;
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
 
     public AssignmentsController(
+        ILogger<AssignmentsController> logger,
         IRotationService rotationService,
         IAssignmentUpdateService assignmentUpdateService,
         IDbContextFactory<RotationDbContext> contextFactory)
+        : base(logger)
     {
         _rotationService = rotationService;
         _assignmentUpdateService = assignmentUpdateService;
@@ -28,83 +29,65 @@ public class AssignmentsController : ControllerBase
     [HttpGet]
     public ActionResult<List<TaskAssignmentDto>> GetRotationList()
     {
-        var rotationList = _rotationService.GetRotationList();
-        return Ok(rotationList);
+        try
+        {
+            var rotationList = _rotationService.GetRotationList();
+            return Ok(rotationList);
+        }
+        catch (Exception ex)
+        {
+            return HandleException<List<TaskAssignmentDto>>(ex);
+        }
     }
 
-    [HttpPut("{id}")]
-    public ActionResult<TaskAssignment> UpdateRotationList(int id, [FromBody] ModifyAssignmentDto modifyAssignmentDto)
-    {
-        var updatedAssignment = _assignmentUpdateService.ModifyTaskAssignment(id, modifyAssignmentDto);
-        return Ok(updatedAssignment);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<TaskAssignmentDto>> CreateAssignment([FromBody] ModifyAssignmentDto createAssignmentDto)
+    [HttpPost("assign")]
+    public async Task<ActionResult<TaskAssignment>> AssignTask([FromBody] AssignTaskDto dto)
     {
         try
         {
             using var context = await _contextFactory.CreateDbContextAsync();
             
-            var task = await context.Tasks.FindAsync(createAssignmentDto.TaskId);
-            var member = await context.Members.FindAsync(createAssignmentDto.MemberId);
-
-            if (task == null || member == null)
+            var task = await context.Tasks.FindAsync(dto.TaskId);
+            if (task == null)
             {
-                return NotFound("Task or member not found");
+                return NotFound("Task not found");
+            }
+
+            var member = await context.Members.FindAsync(dto.MemberId);
+            if (member == null)
+            {
+                return NotFound("Member not found");
             }
 
             var assignment = new TaskAssignment
             {
-                TaskId = createAssignmentDto.TaskId,
-                MemberId = createAssignmentDto.MemberId,
-                StartDate = createAssignmentDto.StartDate,
-                EndDate = createAssignmentDto.EndDate
+                TaskId = dto.TaskId,
+                MemberId = dto.MemberId,
+                StartDate = DateOnly.FromDateTime(DateTime.UtcNow)
             };
 
             context.TaskAssignments.Add(assignment);
             await context.SaveChangesAsync();
 
-            var assignmentDto = new TaskAssignmentDto
-            {
-                Id = assignment.Id,
-                TaskId = assignment.TaskId,
-                MemberId = assignment.MemberId,
-                StartDate = assignment.StartDate,
-                EndDate = assignment.EndDate,
-                Task = task,
-                Member = member
-            };
-
-            return CreatedAtAction(nameof(GetRotationList), new { id = assignment.Id }, assignmentDto);
+            return Ok(assignment);
         }
         catch (Exception ex)
         {
-            return HandleException<TaskAssignmentDto>(ex);
+            return HandleException<TaskAssignment>(ex);
         }
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteAssignment(int id)
+    [HttpPut("{id}")]
+    public ActionResult<TaskAssignment> UpdateRotationList(int id, [FromBody] ModifyAssignmentDto modifyAssignmentDto)
     {
         try
         {
-            using var context = await _contextFactory.CreateDbContextAsync();
-            var assignment = await context.TaskAssignments.FindAsync(id);
-            
-            if (assignment == null)
-            {
-                return NotFound($"Assignment with id {id} not found");
-            }
-
-            context.TaskAssignments.Remove(assignment);
-            await context.SaveChangesAsync();
-
-            return NoContent();
+            var updatedAssignment = _assignmentUpdateService.ModifyTaskAssignment(id, modifyAssignmentDto);
+            return Ok(updatedAssignment);
         }
         catch (Exception ex)
         {
-            return HandleException(ex);
+            return HandleException<TaskAssignment>(ex);
         }
     }
 

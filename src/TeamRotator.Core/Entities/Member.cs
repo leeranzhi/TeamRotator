@@ -6,6 +6,10 @@ public class Member
 {
     [Key]
     public int Id { get; set; }
-    public string? Host { get; set; }
-    public string? SlackId { get; set; }
+    
+    [Required]
+    public string Host { get; set; } = string.Empty;
+    
+    [Required]
+    public string SlackId { get; set; } = string.Empty;
 } 

@@ -5,6 +5,7 @@ using TeamRotator.Infrastructure.Data;
 
 namespace TeamRotator.Api.Controllers;
 
+[ApiController]
 public class MembersController : BaseController
 {
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
