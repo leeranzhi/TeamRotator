@@ -90,9 +90,11 @@ app.UseExceptionHandling();
 // Use CORS before routing and authorization
 app.UseCors();
 
+app.UseRouting();
 app.UseAuthorization();
 
-app.MapControllers();
+// Configure API routes with /api prefix
+app.MapControllers().WithGroupName("api");
 
 // Ensure database is created and migrations are applied
 using (var scope = app.Services.CreateScope())

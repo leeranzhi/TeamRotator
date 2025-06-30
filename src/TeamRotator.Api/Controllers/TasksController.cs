@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TeamRotator.Core.Entities;
 using TeamRotator.Infrastructure.Data;
+using Task = TeamRotator.Core.Entities.Task;
 
 namespace TeamRotator.Api.Controllers;
 
+[ApiController]
 public class TasksController : BaseController
 {
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
@@ -18,7 +20,7 @@ public class TasksController : BaseController
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<RotationTask>>> GetTasks()
+    public async Task<ActionResult<List<Task>>> GetTasks()
     {
         try
         {
@@ -28,12 +30,12 @@ public class TasksController : BaseController
         }
         catch (Exception ex)
         {
-            return HandleException<List<RotationTask>>(ex);
+            return HandleException<List<Task>>(ex);
         }
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<RotationTask>> GetTask(int id)
+    public async Task<ActionResult<Task>> GetTask(int id)
     {
         try
         {
@@ -47,12 +49,12 @@ public class TasksController : BaseController
         }
         catch (Exception ex)
         {
-            return HandleException<RotationTask>(ex);
+            return HandleException<Task>(ex);
         }
     }
 
     [HttpPost]
-    public async Task<ActionResult<RotationTask>> CreateTask([FromBody] RotationTask task)
+    public async Task<ActionResult<Task>> CreateTask([FromBody] Task task)
     {
         try
         {
@@ -63,12 +65,12 @@ public class TasksController : BaseController
         }
         catch (Exception ex)
         {
-            return HandleException<RotationTask>(ex);
+            return HandleException<Task>(ex);
         }
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateTask(int id, [FromBody] RotationTask task)
+    public async Task<IActionResult> UpdateTask(int id, [FromBody] Task task)
     {
         if (id != task.Id)
         {
