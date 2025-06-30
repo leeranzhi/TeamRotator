@@ -11,87 +11,76 @@ namespace TeamRotator.Infrastructure.Services;
 public class SendToSlackService
 {
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
-    private readonly HttpClient _httpClient;
-    private readonly string _slackWebhookUrl;
-    private readonly string _personalSlackUrl;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SendToSlackService> _logger;
 
     public SendToSlackService(
         IDbContextFactory<RotationDbContext> contextFactory,
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         ILogger<SendToSlackService> logger)
     {
         _contextFactory = contextFactory;
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
         _logger = logger;
-        _slackWebhookUrl = configuration["Slack:WebhookUrl"] ?? throw new InvalidOperationException("Slack webhook URL not configured");
-        _personalSlackUrl = configuration["Slack:PersonalWebhookUrl"] ?? throw new InvalidOperationException("Personal Slack webhook URL not configured");
     }
 
     public async Task SendSlackMessage()
     {
         try
         {
+            var webhookUrl = _configuration["Slack:WebhookUrl"];
+            if (string.IsNullOrEmpty(webhookUrl))
+            {
+                _logger.LogWarning("Slack webhook URL is not configured");
+                return;
+            }
+
             using var context = _contextFactory.CreateDbContext();
-
-            _logger.LogInformation("Sending Slack message...");
-
-            var taskAssignments = await context.TaskAssignments
-                .Join(context.Members,
-                    taskAssignment => taskAssignment.MemberId,
-                    member => member.Id,
-                    (taskAssignment, member) => new
-                    {
-                        TaskName = context.Tasks
-                            .Where(task => task.Id == taskAssignment.TaskId)
-                            .Select(task => task.TaskName)
-                            .FirstOrDefault(),
-                        SlackId = member.SlackId,
-                        MemberId = member.Id,
-                        TaskAssignmentId = taskAssignment.Id
-                    })
-                .OrderBy(x => x.TaskAssignmentId)
+            var assignments = await context.TaskAssignments
+                .Include(ta => ta.Task)
+                .Include(ta => ta.Member)
+                .OrderBy(x => x.Id)
                 .ToListAsync();
 
-            var members = await context.Members
-                .OrderBy(member => member.Id)
-                .ToListAsync();
+            if (!assignments.Any())
+            {
+                _logger.LogInformation("No assignments found to send to Slack");
+                return;
+            }
 
             var messageBuilder = new StringBuilder();
+            messageBuilder.AppendLine("Current Task Assignments:");
+            messageBuilder.AppendLine();
 
-            foreach (var assignment in taskAssignments)
+            foreach (var assignment in assignments)
             {
-                messageBuilder.AppendLine($"{assignment.TaskName}: <@{assignment.SlackId}>");
-
-                if (assignment.TaskName == "English word")
-                {
-                    var currentMemberIndex = members.FindIndex(m => m.Id == assignment.MemberId);
-                    var nextOneMember = members[(currentMemberIndex + 1) % members.Count];
-                    var nextTwoMember = members[(currentMemberIndex + 2) % members.Count];
-
-                    messageBuilder.AppendLine($"English word(Day + 1): <@{nextOneMember.SlackId}>");
-                    messageBuilder.AppendLine($"English word(Day + 2): <@{nextTwoMember.SlackId}>");
-                }
+                messageBuilder.AppendLine($"• {assignment.Task?.TaskName}: <@{assignment.Member?.SlackId}> ({assignment.Member?.Host})");
+                messageBuilder.AppendLine($"  Period: {assignment.StartDate:yyyy-MM-dd} to {assignment.EndDate:yyyy-MM-dd}");
             }
 
-            var payload = new { text = messageBuilder.ToString() };
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            var message = new { text = messageBuilder.ToString() };
+            var client = _httpClientFactory.CreateClient();
 
-            var response = await _httpClient.PostAsync(_slackWebhookUrl, content);
+            var response = await client.PostAsync(
+                webhookUrl,
+                new StringContent(JsonSerializer.Serialize(message), Encoding.UTF8, "application/json"));
 
-            if (response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Message sent successfully to Slack!");
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to send Slack message. Status: {StatusCode}, Error: {Error}",
+                    response.StatusCode, error);
+                return;
             }
-            else
-            {
-                _logger.LogError($"Failed to send message to Slack. Status code: {response.StatusCode}");
-            }
+
+            _logger.LogInformation("Successfully sent Slack message");
         }
         catch (Exception ex)
         {
-            _logger.LogError($"An error occurred while sending message to Slack: {ex.Message}");
+            _logger.LogError(ex, "Error sending Slack message");
         }
     }
 
@@ -104,7 +93,7 @@ public class SendToSlackService
             var payload = new { text = failedMessage };
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync(_personalSlackUrl, content);
+            var response = await _httpClientFactory.CreateClient().PostAsync(_configuration["Slack:PersonalWebhookUrl"], content);
 
             if (response.IsSuccessStatusCode)
             {

@@ -104,4 +104,17 @@ export const getSettings = async (): Promise<Settings> => {
 export const updateSettings = async (settings: Partial<Settings>): Promise<Settings> => {
   const response = await api.put('/settings', settings);
   return response.data;
+};
+
+export const getWebhookUrl = async (): Promise<string> => {
+  const response = await api.get('/webhook-url');
+  return response.data;
+};
+
+export const updateWebhookUrl = async (webhookUrl: string): Promise<void> => {
+  await api.post('/webhook-url', JSON.stringify(webhookUrl), {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
 }; 

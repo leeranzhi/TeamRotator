@@ -1,105 +1,97 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
+  Typography,
   TextField,
   Button,
-  Typography,
-  CircularProgress,
-  Snackbar,
+  Paper,
+  Stack,
   Alert,
+  Snackbar
 } from '@mui/material';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { getSettings, updateSettings } from '../services/api';
+import { getWebhookUrl, updateWebhookUrl } from '../services/api';
 
 const Settings: React.FC = () => {
-  const [showSuccess, setShowSuccess] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
-  const [personalWebhookUrl, setPersonalWebhookUrl] = useState('');
-
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ['settings'],
-    queryFn: getSettings,
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (settings) {
-      setWebhookUrl(settings.webhookUrl || '');
-      setPersonalWebhookUrl(settings.personalWebhookUrl || '');
-    }
-  }, [settings]);
+    const fetchWebhookUrl = async () => {
+      try {
+        const url = await getWebhookUrl();
+        setWebhookUrl(url || '');
+      } catch (err) {
+        setError('Failed to load webhook URL');
+      }
+    };
 
-  const updateMutation = useMutation({
-    mutationFn: updateSettings,
-    onSuccess: () => {
-      setShowSuccess(true);
-    },
-  });
+    fetchWebhookUrl();
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate({ webhookUrl, personalWebhookUrl });
-  };
+    setIsLoading(true);
+    setError(null);
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
+    try {
+      await updateWebhookUrl(webhookUrl);
+      setShowSuccess(true);
+    } catch (err) {
+      setError('Failed to update webhook URL');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Box p={3}>
       <Typography variant="h4" gutterBottom>
         Settings
       </Typography>
-
-      <Card>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
+      <Paper sx={{ p: 3, maxWidth: 600 }}>
+        <form onSubmit={handleSubmit}>
+          <Stack spacing={3}>
+            <Typography variant="h6">Slack Integration</Typography>
             <TextField
-              label="Webhook URL"
               fullWidth
-              margin="normal"
+              label="Webhook URL"
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
-              type="url"
-              required
-              helperText="Enter the Slack Webhook URL for team notifications"
+              placeholder="https://hooks.slack.com/services/..."
+              helperText="Enter your Slack webhook URL for notifications"
             />
-            <TextField
-              label="Personal Webhook URL"
-              fullWidth
-              margin="normal"
-              value={personalWebhookUrl}
-              onChange={(e) => setPersonalWebhookUrl(e.target.value)}
-              type="url"
-              required
-              helperText="Enter the Slack Webhook URL for personal notifications"
-            />
-            <Box mt={2}>
+            <Box>
               <Button
                 type="submit"
                 variant="contained"
-                color="primary"
-                disabled={updateMutation.isPending}
+                disabled={isLoading}
               >
-                Save Settings
+                {isLoading ? 'Saving...' : 'Save'}
               </Button>
             </Box>
-          </form>
-        </CardContent>
-      </Card>
+          </Stack>
+        </form>
+      </Paper>
 
       <Snackbar
         open={showSuccess}
-        autoHideDuration={6000}
+        autoHideDuration={3000}
         onClose={() => setShowSuccess(false)}
       >
-        <Alert onClose={() => setShowSuccess(false)} severity="success">
-          Settings updated successfully!
+        <Alert severity="success">
+          Settings saved successfully
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={3000}
+        onClose={() => setError(null)}
+      >
+        <Alert severity="error">
+          {error}
         </Alert>
       </Snackbar>
     </Box>
