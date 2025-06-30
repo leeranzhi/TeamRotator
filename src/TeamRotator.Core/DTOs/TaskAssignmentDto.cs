@@ -10,4 +10,6 @@ public class TaskAssignmentDto
     public int MemberId { get; set; }
     public required string Host { get; set; }
     public required string SlackId { get; set; }
+    public required string StartDate { get; set; }
+    public required string EndDate { get; set; }
 } 

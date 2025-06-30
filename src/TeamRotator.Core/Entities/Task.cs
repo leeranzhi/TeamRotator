@@ -6,6 +6,10 @@ public class Task
 {
     [Key]
     public int Id { get; set; }
-    public string? TaskName { get; set; }
-    public string? RotationRule { get; set; }
+    
+    [Required]
+    public string TaskName { get; set; } = string.Empty;
+    
+    [Required]
+    public string RotationRule { get; set; } = string.Empty;
 } 
