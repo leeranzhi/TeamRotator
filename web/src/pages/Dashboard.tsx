@@ -22,11 +22,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TextField,
 } from '@mui/material';
 import { Edit as EditIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAssignments, updateAssignment, triggerRotationUpdate, getMembers } from '../services/api';
 import { TaskAssignment, ModifyAssignment, Member } from '../types';
+import { format, parseISO } from 'date-fns';
 
 const Dashboard: React.FC = () => {
   const queryClient = useQueryClient();
@@ -34,6 +36,8 @@ const Dashboard: React.FC = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<TaskAssignment | null>(null);
   const [editForm, setEditForm] = useState({
     host: '',
+    startDate: '',
+    endDate: '',
   });
 
   const { data: assignments } = useQuery<TaskAssignment[]>({
@@ -81,10 +85,25 @@ const Dashboard: React.FC = () => {
     },
   });
 
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    try {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      return format(parseISO(dateString), 'yyyy-MM-dd');
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return '';
+    }
+  };
+
   const handleEdit = (assignment: TaskAssignment) => {
     setSelectedAssignment(assignment);
     setEditForm({
-      host: assignment.host,
+      host: assignment.host || '',
+      startDate: formatDate(assignment.startDate) || '',
+      endDate: formatDate(assignment.endDate) || '',
     });
     setEditDialogOpen(true);
   };
@@ -94,18 +113,22 @@ const Dashboard: React.FC = () => {
     setSelectedAssignment(null);
     setEditForm({
       host: '',
+      startDate: '',
+      endDate: '',
     });
   };
 
   const handleSave = async () => {
-    if (selectedAssignment) {
-      await updateAssignmentMutation.mutateAsync({
-        id: selectedAssignment.id,
-        assignment: {
-          host: editForm.host,
-        },
-      });
-    }
+    if (!selectedAssignment) return;
+    
+    await updateAssignmentMutation.mutateAsync({
+      id: selectedAssignment.id,
+      assignment: {
+        host: editForm.host,
+        startDate: editForm.startDate,
+        endDate: editForm.endDate,
+      },
+    });
   };
 
   const handleUpdateRotation = async () => {
@@ -129,6 +152,8 @@ const Dashboard: React.FC = () => {
             <TableRow>
               <TableCell>Task Name</TableCell>
               <TableCell>Assigned To</TableCell>
+              <TableCell>Start Date</TableCell>
+              <TableCell>End Date</TableCell>
               <TableCell>Slack ID</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -141,6 +166,16 @@ const Dashboard: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body1">{assignment.host}</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body1">
+                    {formatDate(assignment.startDate)}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body1">
+                    {formatDate(assignment.endDate)}
+                  </Typography>
                 </TableCell>
                 <TableCell>
                   <Chip
@@ -159,7 +194,7 @@ const Dashboard: React.FC = () => {
             ))}
             {(!currentAssignments || currentAssignments.length === 0) && (
               <TableRow>
-                <TableCell colSpan={4} align="center">
+                <TableCell colSpan={6} align="center">
                   <Typography variant="body2" color="text.secondary">
                     No assignments found
                   </Typography>
@@ -188,6 +223,26 @@ const Dashboard: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
+            <TextField
+              label="Start Date"
+              type="date"
+              value={editForm.startDate}
+              onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+              fullWidth
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+            <TextField
+              label="End Date"
+              type="date"
+              value={editForm.endDate}
+              onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+              fullWidth
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
           </Stack>
         </DialogContent>
         <DialogActions>

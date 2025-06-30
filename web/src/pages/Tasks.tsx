@@ -123,9 +123,17 @@ const Tasks: React.FC = () => {
     if (selectedTaskId && selectedMemberId >= 0) {
       const selectedMember = members?.find(m => m.id === selectedMemberId);
       if (selectedMember) {
+        const today = new Date();
+        const nextWeek = new Date();
+        nextWeek.setDate(today.getDate() + 7);
+
         updateAssignmentMutation.mutate({
           id: selectedTaskId,
-          assignment: { host: selectedMember.host }
+          assignment: {
+            host: selectedMember.host,
+            startDate: today.toISOString().split('T')[0],
+            endDate: nextWeek.toISOString().split('T')[0]
+          }
         });
       }
     }

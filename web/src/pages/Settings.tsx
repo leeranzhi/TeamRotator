@@ -16,6 +16,7 @@ import { getSettings, updateSettings } from '../services/api';
 const Settings: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
+  const [personalWebhookUrl, setPersonalWebhookUrl] = useState('');
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -23,8 +24,9 @@ const Settings: React.FC = () => {
   });
 
   useEffect(() => {
-    if (settings?.slackWebhookUrl) {
-      setWebhookUrl(settings.slackWebhookUrl);
+    if (settings) {
+      setWebhookUrl(settings.webhookUrl || '');
+      setPersonalWebhookUrl(settings.personalWebhookUrl || '');
     }
   }, [settings]);
 
@@ -37,7 +39,7 @@ const Settings: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate({ slackWebhookUrl: webhookUrl });
+    updateMutation.mutate({ webhookUrl, personalWebhookUrl });
   };
 
   if (isLoading) {
@@ -49,7 +51,7 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box p={3}>
       <Typography variant="h4" gutterBottom>
         Settings
       </Typography>
@@ -58,14 +60,24 @@ const Settings: React.FC = () => {
         <CardContent>
           <form onSubmit={handleSubmit}>
             <TextField
-              label="Slack Webhook URL"
+              label="Webhook URL"
               fullWidth
               margin="normal"
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
               type="url"
               required
-              helperText="Enter the Slack Webhook URL for notifications"
+              helperText="Enter the Slack Webhook URL for team notifications"
+            />
+            <TextField
+              label="Personal Webhook URL"
+              fullWidth
+              margin="normal"
+              value={personalWebhookUrl}
+              onChange={(e) => setPersonalWebhookUrl(e.target.value)}
+              type="url"
+              required
+              helperText="Enter the Slack Webhook URL for personal notifications"
             />
             <Box mt={2}>
               <Button

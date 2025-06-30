@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../services/api';
+import { getMembers, createMember, updateMember } from '../services/api';
 import { Member } from '../types';
 
 const Members: React.FC = () => {
@@ -29,12 +29,11 @@ const Members: React.FC = () => {
 
   const { data: members } = useQuery<Member[]>({
     queryKey: ['members'],
-    queryFn: () => api.get<Member[]>('/members').then((res) => res.data),
+    queryFn: getMembers,
   });
 
   const createMutation = useMutation({
-    mutationFn: (member: Omit<Member, 'id'>) =>
-      api.post<Member>('/members', member).then((res) => res.data),
+    mutationFn: createMember,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       handleClose();
@@ -43,7 +42,7 @@ const Members: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, member }: { id: number; member: Partial<Member> }) =>
-      api.put<Member>(`/members/${id}`, member).then((res) => res.data),
+      updateMember(id, member),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       handleClose();
@@ -51,7 +50,7 @@ const Members: React.FC = () => {
   });
 
   const handleOpen = (member?: Member) => {
-    setEditingMember(member || { name: '', slackId: '' });
+    setEditingMember(member || { host: '', slackId: '' });
     setOpen(true);
   };
 
@@ -67,11 +66,11 @@ const Members: React.FC = () => {
     if (editingMember.id) {
       updateMutation.mutate({
         id: editingMember.id,
-        member: { name: editingMember.name, slackId: editingMember.slackId },
+        member: { host: editingMember.host, slackId: editingMember.slackId },
       });
     } else {
       createMutation.mutate({
-        name: editingMember.name!,
+        host: editingMember.host!,
         slackId: editingMember.slackId!,
       });
     }
@@ -95,7 +94,7 @@ const Members: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
+              <TableCell>Host</TableCell>
               <TableCell>Slack ID</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -103,7 +102,7 @@ const Members: React.FC = () => {
           <TableBody>
             {members?.map((member) => (
               <TableRow key={member.id}>
-                <TableCell>{member.name}</TableCell>
+                <TableCell>{member.host}</TableCell>
                 <TableCell>{member.slackId}</TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => handleOpen(member)}>
@@ -124,11 +123,11 @@ const Members: React.FC = () => {
               <TextField
                 autoFocus
                 margin="dense"
-                label="Name"
+                label="Host"
                 fullWidth
-                value={editingMember?.name || ''}
+                value={editingMember?.host || ''}
                 onChange={(e) =>
-                  setEditingMember((prev) => ({ ...prev!, name: e.target.value }))
+                  setEditingMember((prev) => ({ ...prev!, host: e.target.value }))
                 }
               />
               <TextField
