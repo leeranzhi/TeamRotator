@@ -31,39 +31,27 @@ public class RotationService : IRotationService
 
         using var context = _contextFactory.CreateDbContext();
 
-        var rotationList = context.TaskAssignments
-            .Join(context.Members,
-                taskAssignment => taskAssignment.MemberId,
-                member => member.Id,
-                (taskAssignment, member) => new { taskAssignment, member })
-            .Join(context.Tasks,
-                combined => combined.taskAssignment.TaskId,
-                task => task.Id,
-                (combined, task) => new
-                {
-                    combined.taskAssignment.Id,
-                    combined.taskAssignment.TaskId,
-                    TaskName = task.TaskName,
-                    MemberId = combined.member.Id,
-                    Host = combined.member.Host,
-                    SlackId = combined.member.SlackId
-                })
+        var assignments = context.TaskAssignments
+            .Include(ta => ta.Task)
+            .Include(ta => ta.Member)
             .OrderBy(x => x.Id)
             .AsEnumerable()
-            .Select(x => new TaskAssignmentDto
+            .Select(ta => new TaskAssignmentDto
             {
-                Id = x.Id,
-                TaskId = x.TaskId,
-                TaskName = x.TaskName ?? throw new InvalidOperationException($"Task name is null for task {x.TaskId}"),
-                MemberId = x.MemberId,
-                Host = x.Host ?? throw new InvalidOperationException($"Host is null for member {x.MemberId}"),
-                SlackId = x.SlackId ?? throw new InvalidOperationException($"SlackId is null for member {x.MemberId}")
+                Id = ta.Id,
+                TaskId = ta.TaskId,
+                TaskName = ta.Task?.TaskName ?? throw new InvalidOperationException($"Task name is null for task {ta.TaskId}"),
+                MemberId = ta.MemberId,
+                Host = ta.Member?.Host ?? throw new InvalidOperationException($"Host is null for member {ta.MemberId}"),
+                SlackId = ta.Member?.SlackId ?? throw new InvalidOperationException($"SlackId is null for member {ta.MemberId}"),
+                StartDate = ta.StartDate.ToString("yyyy-MM-dd"),
+                EndDate = ta.EndDate.ToString("yyyy-MM-dd")
             })
             .ToList();
 
-        _logger.LogInformation("Successfully fetched {RotationListCount} task assignments.", rotationList.Count);
+        _logger.LogInformation("Successfully fetched {RotationListCount} task assignments.", assignments.Count);
 
-        return rotationList;
+        return assignments;
     }
 
     private bool ShouldUpdateAssignment(TaskAssignment assignment)
