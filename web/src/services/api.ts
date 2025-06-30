@@ -87,7 +87,7 @@ export const updateAssignment = async (
   id: number,
   assignment: ModifyAssignment
 ): Promise<TaskAssignment> => {
-  const response = await api.put(`/assignments/${id}`, { host: assignment.host });
+  const response = await api.put(`/assignments/${id}`, assignment);
   return response.data;
 };
 

@@ -17,10 +17,14 @@ export interface TaskAssignment {
   memberId: number;
   host: string;
   slackId: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface ModifyAssignment {
   host: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface Settings {
