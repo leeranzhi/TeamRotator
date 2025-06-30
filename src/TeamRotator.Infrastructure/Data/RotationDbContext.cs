@@ -12,6 +12,7 @@ public class RotationDbContext : DbContext
     public DbSet<TaskAssignment> TaskAssignments { get; set; } = null!;
     public DbSet<Task> Tasks { get; set; } = null!;
     public DbSet<Member> Members { get; set; } = null!;
+    public DbSet<SystemConfig> SystemConfigs { get; set; } = null!;
 
     public RotationDbContext(DbContextOptions<RotationDbContext> options, ILogger<RotationDbContext>? logger = null) 
         : base(options)
@@ -61,6 +62,14 @@ public class RotationDbContext : DbContext
                 .HasForeignKey(e => e.MemberId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
+        });
+
+        modelBuilder.Entity<SystemConfig>(entity =>
+        {
+            entity.HasKey(e => e.Key);
+            entity.Property(e => e.Key).HasMaxLength(50);
+            entity.Property(e => e.Value).HasMaxLength(500);
+            entity.Property(e => e.ModifiedBy).HasMaxLength(100);
         });
     }
 } 
