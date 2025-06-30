@@ -40,26 +40,38 @@ public class SendToSlackService
                 return;
             }
 
-            var assignments = await context.TaskAssignments
+            var taskAssignments = await context.TaskAssignments
                 .Include(ta => ta.Task)
                 .Include(ta => ta.Member)
                 .OrderBy(x => x.Id)
                 .ToListAsync();
 
-            if (!assignments.Any())
+            if (!taskAssignments.Any())
             {
                 _logger.LogInformation("No assignments found to send to Slack");
                 return;
             }
 
-            var messageBuilder = new StringBuilder();
-            messageBuilder.AppendLine("Current Task Assignments:");
-            messageBuilder.AppendLine();
+            var members = await context.Members
+                .OrderBy(m => m.Id)
+                .ToListAsync();
 
-            foreach (var assignment in assignments)
+            var messageBuilder = new StringBuilder();
+
+            foreach (var assignment in taskAssignments)
             {
-                messageBuilder.AppendLine($"• {assignment.Task?.TaskName}: <@{assignment.Member?.SlackId}> ({assignment.Member?.Host})");
-                messageBuilder.AppendLine($"  Period: {assignment.StartDate:yyyy-MM-dd} to {assignment.EndDate:yyyy-MM-dd}");
+                messageBuilder.AppendLine($"{assignment.Task?.TaskName}: <@{assignment.Member?.SlackId}>");
+
+                // Special handling for English word task
+                if (assignment.Task?.TaskName == "English word")
+                {
+                    var currentMemberIndex = members.FindIndex(m => m.Id == assignment.MemberId);
+                    var nextOneMember = members[(currentMemberIndex + 1) % members.Count];
+                    var nextTwoMember = members[(currentMemberIndex + 2) % members.Count];
+
+                    messageBuilder.AppendLine($"English word(Day + 1): <@{nextOneMember.SlackId}>");
+                    messageBuilder.AppendLine($"English word(Day + 2): <@{nextTwoMember.SlackId}>");
+                }
             }
 
             var message = new { text = messageBuilder.ToString() };
