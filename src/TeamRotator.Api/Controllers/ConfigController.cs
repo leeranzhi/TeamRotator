@@ -1,35 +1,32 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System.IO;
-using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using TeamRotator.Core.Entities;
+using TeamRotator.Infrastructure.Data;
 
 namespace TeamRotator.Api.Controllers;
 
 [ApiController]
 public class ConfigController : BaseController
 {
-    private readonly IConfiguration _configuration;
-    private readonly IWebHostEnvironment _environment;
-    private readonly string _configPath;
+    private readonly RotationDbContext _dbContext;
+    private const string WEBHOOK_URL_KEY = "Slack:WebhookUrl";
 
     public ConfigController(
         ILogger<ConfigController> logger,
-        IConfiguration configuration,
-        IWebHostEnvironment environment)
+        RotationDbContext dbContext)
         : base(logger)
     {
-        _configuration = configuration;
-        _environment = environment;
-        _configPath = Path.Combine(_environment.ContentRootPath, "appsettings.json");
+        _dbContext = dbContext;
     }
 
     [HttpGet("webhook-url")]
-    public ActionResult<string> GetWebhookUrl()
+    public async Task<ActionResult<string>> GetWebhookUrl()
     {
         try
         {
-            var webhookUrl = _configuration["Slack:WebhookUrl"];
-            return Ok(webhookUrl);
+            var config = await _dbContext.SystemConfigs
+                .FirstOrDefaultAsync(c => c.Key == WEBHOOK_URL_KEY);
+            return Ok(config?.Value ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -38,30 +35,30 @@ public class ConfigController : BaseController
     }
 
     [HttpPost("webhook-url")]
-    public async Task<ActionResult> UpdateWebhookUrl([FromBody] string webhookUrl)
+    public async Task<IActionResult> UpdateWebhookUrl([FromBody] string webhookUrl)
     {
         try
         {
-            var jsonString = await File.ReadAllTextAsync(_configPath);
-            var config = JsonSerializer.Deserialize<JsonDocument>(jsonString);
-            var root = config.RootElement.Clone();
-            var configObject = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(root.GetRawText());
+            var config = await _dbContext.SystemConfigs
+                .FirstOrDefaultAsync(c => c.Key == WEBHOOK_URL_KEY);
 
-            if (!configObject.ContainsKey("Slack"))
+            if (config == null)
             {
-                configObject["Slack"] = JsonSerializer.SerializeToElement(new { WebhookUrl = webhookUrl });
+                config = new SystemConfig
+                {
+                    Key = WEBHOOK_URL_KEY,
+                    Value = webhookUrl,
+                    LastModified = DateTime.UtcNow
+                };
+                _dbContext.SystemConfigs.Add(config);
             }
             else
             {
-                var slack = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(configObject["Slack"].GetRawText());
-                slack["WebhookUrl"] = JsonSerializer.SerializeToElement(webhookUrl);
-                configObject["Slack"] = JsonSerializer.SerializeToElement(slack);
+                config.Value = webhookUrl;
+                config.LastModified = DateTime.UtcNow;
             }
 
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var updatedJson = JsonSerializer.Serialize(configObject, options);
-            await File.WriteAllTextAsync(_configPath, updatedJson);
-
+            await _dbContext.SaveChangesAsync();
             return Ok();
         }
         catch (Exception ex)

@@ -12,18 +12,16 @@ public class SendToSlackService
 {
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<SendToSlackService> _logger;
+    private const string WEBHOOK_URL_KEY = "Slack:WebhookUrl";
 
     public SendToSlackService(
         IDbContextFactory<RotationDbContext> contextFactory,
         IHttpClientFactory httpClientFactory,
-        IConfiguration configuration,
         ILogger<SendToSlackService> logger)
     {
         _contextFactory = contextFactory;
         _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
         _logger = logger;
     }
 
@@ -31,14 +29,17 @@ public class SendToSlackService
     {
         try
         {
-            var webhookUrl = _configuration["Slack:WebhookUrl"];
+            using var context = _contextFactory.CreateDbContext();
+            var webhookConfig = await context.SystemConfigs
+                .FirstOrDefaultAsync(c => c.Key == WEBHOOK_URL_KEY);
+
+            var webhookUrl = webhookConfig?.Value;
             if (string.IsNullOrEmpty(webhookUrl))
             {
-                _logger.LogWarning("Slack webhook URL is not configured");
+                _logger.LogWarning("Slack webhook URL is not configured in the database");
                 return;
             }
 
-            using var context = _contextFactory.CreateDbContext();
             var assignments = await context.TaskAssignments
                 .Include(ta => ta.Task)
                 .Include(ta => ta.Member)
@@ -81,6 +82,7 @@ public class SendToSlackService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending Slack message");
+            throw;
         }
     }
 
@@ -90,23 +92,34 @@ public class SendToSlackService
         {
             _logger.LogInformation("Sending failure message to Slack...");
 
+            using var context = _contextFactory.CreateDbContext();
+            var webhookConfig = await context.SystemConfigs
+                .FirstOrDefaultAsync(c => c.Key == WEBHOOK_URL_KEY);
+
+            var webhookUrl = webhookConfig?.Value;
+            if (string.IsNullOrEmpty(webhookUrl))
+            {
+                _logger.LogWarning("Slack webhook URL is not configured in the database");
+                return;
+            }
+
             var payload = new { text = failedMessage };
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var response = await _httpClientFactory.CreateClient().PostAsync(_configuration["Slack:PersonalWebhookUrl"], content);
+            var response = await _httpClientFactory.CreateClient().PostAsync(webhookUrl, content);
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Failure message sent to personal Slack URL!");
+                _logger.LogInformation("Failure message sent to Slack!");
             }
             else
             {
-                _logger.LogError($"Failed to send failure message to personal Slack URL. Status code: {response.StatusCode}");
+                _logger.LogError($"Failed to send failure message to Slack. Status code: {response.StatusCode}");
             }
         }
         catch (Exception e)
         {
-            _logger.LogError($"An error occurred while sending failure message to personal Slack URL: {e.Message}");
+            _logger.LogError($"An error occurred while sending failure message to Slack: {e.Message}");
         }
     }
 } 

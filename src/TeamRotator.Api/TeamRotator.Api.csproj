@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
     <PropertyGroup>
         <RootNamespace>TeamRotator.Api</RootNamespace>
         <AssemblyName>TeamRotator.Api</AssemblyName>
@@ -6,7 +6,8 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>false</InvariantGlobalization>
-    </PropertyGroup>
+      <UserSecretsId>f57fc89e-7df8-4e54-89ed-1725070bfc28</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\TeamRotator.Core\TeamRotator.Core.csproj" />

@@ -4,6 +4,7 @@ using TeamRotator.Core.DTOs;
 using TeamRotator.Core.Interfaces;
 using TeamRotator.Infrastructure.Data;
 using TeamRotator.Core.Entities;
+using TeamRotator.Infrastructure.Services;
 
 namespace TeamRotator.Api.Controllers;
 
@@ -13,17 +14,20 @@ public class AssignmentsController : BaseController
     private readonly IRotationService _rotationService;
     private readonly IAssignmentUpdateService _assignmentUpdateService;
     private readonly IDbContextFactory<RotationDbContext> _contextFactory;
+    private readonly SendToSlackService _sendToSlackService;
 
     public AssignmentsController(
         ILogger<AssignmentsController> logger,
         IRotationService rotationService,
         IAssignmentUpdateService assignmentUpdateService,
-        IDbContextFactory<RotationDbContext> contextFactory)
+        IDbContextFactory<RotationDbContext> contextFactory,
+        SendToSlackService sendToSlackService)
         : base(logger)
     {
         _rotationService = rotationService;
         _assignmentUpdateService = assignmentUpdateService;
         _contextFactory = contextFactory;
+        _sendToSlackService = sendToSlackService;
     }
 
     [HttpGet]
@@ -97,6 +101,20 @@ public class AssignmentsController : BaseController
         try
         {
             await _rotationService.UpdateTaskAssignmentList();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex);
+        }
+    }
+
+    [HttpPost("send-to-slack")]
+    public async Task<IActionResult> SendToSlack()
+    {
+        try
+        {
+            await _sendToSlackService.SendSlackMessage();
             return Ok();
         }
         catch (Exception ex)
