@@ -27,6 +27,12 @@ public class SendToSlackService
 
     public async Task SendSlackMessage()
     {
+        var message = await GetSlackMessage();
+        if (message == null)
+        {
+            return;
+        }
+
         try
         {
             using var context = _contextFactory.CreateDbContext();
@@ -40,6 +46,34 @@ public class SendToSlackService
                 return;
             }
 
+            var client = _httpClientFactory.CreateClient();
+
+            var response = await client.PostAsync(
+                webhookUrl,
+                new StringContent(JsonSerializer.Serialize(new { text = message }), Encoding.UTF8, "application/json"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to send Slack message. Status: {StatusCode}, Error: {Error}",
+                    response.StatusCode, error);
+                return;
+            }
+
+            _logger.LogInformation("Successfully sent Slack message");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending Slack message");
+            throw;
+        }
+    }
+
+    public async Task<string?> GetSlackMessage()
+    {
+        try
+        {
+            using var context = _contextFactory.CreateDbContext();
             var taskAssignments = await context.TaskAssignments
                 .Include(ta => ta.Task)
                 .Include(ta => ta.Member)
@@ -49,7 +83,7 @@ public class SendToSlackService
             if (!taskAssignments.Any())
             {
                 _logger.LogInformation("No assignments found to send to Slack");
-                return;
+                return null;
             }
 
             var members = await context.Members
@@ -74,26 +108,11 @@ public class SendToSlackService
                 }
             }
 
-            var message = new { text = messageBuilder.ToString() };
-            var client = _httpClientFactory.CreateClient();
-
-            var response = await client.PostAsync(
-                webhookUrl,
-                new StringContent(JsonSerializer.Serialize(message), Encoding.UTF8, "application/json"));
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Failed to send Slack message. Status: {StatusCode}, Error: {Error}",
-                    response.StatusCode, error);
-                return;
-            }
-
-            _logger.LogInformation("Successfully sent Slack message");
+            return messageBuilder.ToString();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending Slack message");
+            _logger.LogError(ex, "Error generating Slack message");
             throw;
         }
     }

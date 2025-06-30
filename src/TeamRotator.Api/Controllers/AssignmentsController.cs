@@ -122,4 +122,22 @@ public class AssignmentsController : BaseController
             return HandleException(ex);
         }
     }
+
+    [HttpGet("slack-message-preview")]
+    public async Task<ActionResult<string>> GetSlackMessagePreview()
+    {
+        try
+        {
+            var message = await _sendToSlackService.GetSlackMessage();
+            if (message == null)
+            {
+                return NotFound("No assignments found");
+            }
+            return Ok(message);
+        }
+        catch (Exception ex)
+        {
+            return HandleException<string>(ex);
+        }
+    }
 } 

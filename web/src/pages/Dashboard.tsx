@@ -18,17 +18,20 @@ import {
   DialogActions,
   Button,
   MenuItem,
-  TextField
+  TextField,
+  DialogContentText
 } from '@mui/material';
 import { Edit as EditIcon, Refresh as RefreshIcon, Send as SendIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAssignments, updateAssignment, triggerRotationUpdate, getMembers, sendToSlack } from '../services/api';
+import { getAssignments, updateAssignment, triggerRotationUpdate, getMembers, sendToSlack, getSlackMessagePreview } from '../services/api';
 import { TaskAssignment, ModifyAssignment, Member } from '../types';
 import { format, parseISO } from 'date-fns';
 
 const Dashboard: React.FC = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<TaskAssignment | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [messagePreview, setMessagePreview] = useState('');
   const [selectedMember, setSelectedMember] = useState({
     host: '',
     startDate: '',
@@ -125,6 +128,17 @@ const Dashboard: React.FC = () => {
   };
 
   const handleSendToSlack = async () => {
+    try {
+      const preview = await getSlackMessagePreview();
+      setMessagePreview(preview);
+      setConfirmDialogOpen(true);
+    } catch (err) {
+      setError('Failed to get message preview');
+    }
+  };
+
+  const handleConfirmSend = async () => {
+    setConfirmDialogOpen(false);
     setIsLoading(true);
     setError(null);
     try {
@@ -243,6 +257,31 @@ const Dashboard: React.FC = () => {
           <SendIcon />
         </Fab>
       </Box>
+
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Message</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            The following message will be sent to Slack:
+          </DialogContentText>
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+            <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+              {messagePreview}
+            </pre>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleConfirmSend} variant="contained">
+            Send
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={showSuccess}

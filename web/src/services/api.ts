@@ -121,4 +121,9 @@ export const updateWebhookUrl = async (webhookUrl: string): Promise<void> => {
 
 export const sendToSlack = async (): Promise<void> => {
   await api.post('/assignments/send-to-slack');
+};
+
+export const getSlackMessagePreview = async (): Promise<string> => {
+  const response = await api.get('/assignments/slack-message-preview');
+  return response.data;
 }; 
