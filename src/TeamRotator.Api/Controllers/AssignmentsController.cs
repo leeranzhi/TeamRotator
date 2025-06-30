@@ -9,7 +9,6 @@ using TeamRotator.Infrastructure.Services;
 namespace TeamRotator.Api.Controllers;
 
 [ApiController]
-[Route("api/assignments")]
 public class AssignmentsController : BaseController
 {
     private readonly IRotationService _rotationService;
