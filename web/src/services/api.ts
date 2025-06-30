@@ -107,14 +107,18 @@ export const updateSettings = async (settings: Partial<Settings>): Promise<Setti
 };
 
 export const getWebhookUrl = async (): Promise<string> => {
-  const response = await api.get('/webhook-url');
+  const response = await api.get('/config/webhook-url');
   return response.data;
 };
 
 export const updateWebhookUrl = async (webhookUrl: string): Promise<void> => {
-  await api.post('/webhook-url', JSON.stringify(webhookUrl), {
+  await api.post('/config/webhook-url', JSON.stringify(webhookUrl), {
     headers: {
       'Content-Type': 'application/json'
     }
   });
+};
+
+export const sendToSlack = async (): Promise<void> => {
+  await api.post('/assignments/send-to-slack');
 }; 

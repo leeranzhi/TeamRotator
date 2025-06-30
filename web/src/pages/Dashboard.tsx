@@ -1,15 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Stack,
-  Tooltip,
   Paper,
   Table,
   TableBody,
@@ -17,28 +9,34 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
+  Fab,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
   MenuItem,
-  TextField,
+  TextField
 } from '@mui/material';
-import { Edit as EditIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Refresh as RefreshIcon, Send as SendIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAssignments, updateAssignment, triggerRotationUpdate, getMembers } from '../services/api';
+import { getAssignments, updateAssignment, triggerRotationUpdate, getMembers, sendToSlack } from '../services/api';
 import { TaskAssignment, ModifyAssignment, Member } from '../types';
 import { format, parseISO } from 'date-fns';
 
 const Dashboard: React.FC = () => {
-  const queryClient = useQueryClient();
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<TaskAssignment | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState({
     host: '',
     startDate: '',
     endDate: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { data: assignments } = useQuery<TaskAssignment[]>({
     queryKey: ['assignments'],
@@ -49,6 +47,8 @@ const Dashboard: React.FC = () => {
     queryKey: ['members'],
     queryFn: getMembers,
   });
+
+  const queryClient = useQueryClient();
 
   // 获取每个任务的最新分配记录
   const currentAssignments = useMemo(() => {
@@ -70,8 +70,8 @@ const Dashboard: React.FC = () => {
   }, [assignments]);
 
   const updateAssignmentMutation = useMutation({
-    mutationFn: ({ id, assignment }: { id: number; assignment: ModifyAssignment }) =>
-      updateAssignment(id, assignment),
+    mutationFn: (variables: { id: number; data: ModifyAssignment }) =>
+      updateAssignment(variables.id, variables.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] });
       handleCloseDialog();
@@ -85,25 +85,12 @@ const Dashboard: React.FC = () => {
     },
   });
 
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
-    try {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-      return format(parseISO(dateString), 'yyyy-MM-dd');
-    } catch (error) {
-      console.error('Error formatting date:', error, dateString);
-      return '';
-    }
-  };
-
-  const handleEdit = (assignment: TaskAssignment) => {
+  const handleEditClick = (assignment: TaskAssignment) => {
     setSelectedAssignment(assignment);
-    setEditForm({
-      host: assignment.host || '',
-      startDate: formatDate(assignment.startDate) || '',
-      endDate: formatDate(assignment.endDate) || '',
+    setSelectedMember({
+      host: assignment.host,
+      startDate: assignment.startDate,
+      endDate: assignment.endDate,
     });
     setEditDialogOpen(true);
   };
@@ -111,7 +98,7 @@ const Dashboard: React.FC = () => {
   const handleCloseDialog = () => {
     setEditDialogOpen(false);
     setSelectedAssignment(null);
-    setEditForm({
+    setSelectedMember({
       host: '',
       startDate: '',
       endDate: '',
@@ -120,14 +107,16 @@ const Dashboard: React.FC = () => {
 
   const handleSave = async () => {
     if (!selectedAssignment) return;
-    
+
+    const data: ModifyAssignment = {
+      host: selectedMember.host,
+      startDate: selectedMember.startDate,
+      endDate: selectedMember.endDate,
+    };
+
     await updateAssignmentMutation.mutateAsync({
       id: selectedAssignment.id,
-      assignment: {
-        host: editForm.host,
-        startDate: editForm.startDate,
-        endDate: editForm.endDate,
-      },
+      data,
     });
   };
 
@@ -135,123 +124,145 @@ const Dashboard: React.FC = () => {
     await updateRotationMutation.mutateAsync();
   };
 
+  const handleSendToSlack = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await sendToSlack();
+      setShowSuccess(true);
+    } catch (err) {
+      setError('Failed to send message to Slack');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Current Task Assignments</Typography>
-        <Tooltip title="Update rotation">
-          <IconButton onClick={handleUpdateRotation} color="primary">
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+        <Typography variant="h4">
+          Dashboard
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<RefreshIcon />}
+          onClick={handleUpdateRotation}
+          disabled={updateRotationMutation.isPending}
+        >
+          Update Rotation
+        </Button>
       </Box>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Task Name</TableCell>
-              <TableCell>Assigned To</TableCell>
+              <TableCell>Task</TableCell>
+              <TableCell>Assignee</TableCell>
               <TableCell>Start Date</TableCell>
               <TableCell>End Date</TableCell>
-              <TableCell>Slack ID</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {currentAssignments.map((assignment) => (
               <TableRow key={assignment.id}>
+                <TableCell>{assignment.taskName}</TableCell>
+                <TableCell>{assignment.host}</TableCell>
+                <TableCell>{format(parseISO(assignment.startDate), 'yyyy-MM-dd')}</TableCell>
+                <TableCell>{format(parseISO(assignment.endDate), 'yyyy-MM-dd')}</TableCell>
                 <TableCell>
-                  <Typography variant="body1">{assignment.taskName}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body1">{assignment.host}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body1">
-                    {formatDate(assignment.startDate)}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body1">
-                    {formatDate(assignment.endDate)}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={assignment.slackId}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleEdit(assignment)} size="small">
-                    <EditIcon />
-                  </IconButton>
+                  <Button
+                    startIcon={<EditIcon />}
+                    onClick={() => handleEditClick(assignment)}
+                  >
+                    Edit
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
-            {(!currentAssignments || currentAssignments.length === 0) && (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    No assignments found
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Dialog open={editDialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={editDialogOpen} onClose={handleCloseDialog}>
         <DialogTitle>Edit Assignment</DialogTitle>
         <DialogContent>
-          <Stack spacing={3} sx={{ mt: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Member</InputLabel>
-              <Select
-                value={editForm.host}
-                onChange={(e) => setEditForm({ ...editForm, host: e.target.value })}
-                label="Member"
-              >
-                {members?.map((member) => (
-                  <MenuItem key={member.id} value={member.host}>
-                    {member.host}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          <Box sx={{ pt: 2 }}>
             <TextField
+              select
+              fullWidth
+              label="Assignee"
+              value={selectedMember.host}
+              onChange={(e) => setSelectedMember({ ...selectedMember, host: e.target.value })}
+              sx={{ mb: 2 }}
+            >
+              {members?.map((member) => (
+                <MenuItem key={member.id} value={member.host}>
+                  {member.host}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              fullWidth
               label="Start Date"
               type="date"
-              value={editForm.startDate}
-              onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
-              fullWidth
-              InputLabelProps={{
-                shrink: true,
-              }}
+              value={selectedMember.startDate}
+              onChange={(e) => setSelectedMember({ ...selectedMember, startDate: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mb: 2 }}
             />
             <TextField
+              fullWidth
               label="End Date"
               type="date"
-              value={editForm.endDate}
-              onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
-              fullWidth
-              InputLabelProps={{
-                shrink: true,
-              }}
+              value={selectedMember.endDate}
+              onChange={(e) => setSelectedMember({ ...selectedMember, endDate: e.target.value })}
+              InputLabelProps={{ shrink: true }}
             />
-          </Stack>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" color="primary">
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={updateAssignmentMutation.isPending}
+          >
             Save
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Box position="fixed" bottom={16} right={16}>
+        <Fab
+          color="primary"
+          onClick={handleSendToSlack}
+          disabled={isLoading}
+        >
+          <SendIcon />
+        </Fab>
+      </Box>
+
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowSuccess(false)}
+      >
+        <Alert severity="success">
+          Message sent to Slack successfully
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={3000}
+        onClose={() => setError(null)}
+      >
+        <Alert severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
